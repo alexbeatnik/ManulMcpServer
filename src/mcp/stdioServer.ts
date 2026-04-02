@@ -1,36 +1,14 @@
 import { promises as fs } from 'node:fs';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import type { CallToolResult, CreateTaskResult } from '@modelcontextprotocol/sdk/types.js';
 
 import { getRuntimeSettingsFromEnv, getMcpServerLabelFromEnv } from '../config/runtimeSettings';
 import { extractRunnableSteps, normalizeGoal, normalizeNaturalLanguageStep } from '../dsl/builder';
 import { validateDocument, validateStep } from '../dsl/validator';
 import { ManulMcpServer } from './server';
 import { ManulApiClient } from '../services/apiClient';
-
-type JsonRpcId = number | string | null;
-
-interface JsonRpcRequest {
-  readonly jsonrpc: '2.0';
-  readonly id?: JsonRpcId;
-  readonly method: string;
-  readonly params?: unknown;
-}
-
-interface JsonRpcNotification {
-  readonly jsonrpc: '2.0';
-  readonly method: string;
-  readonly params?: unknown;
-}
-
-interface JsonRpcResponse {
-  readonly jsonrpc: '2.0';
-  readonly id: JsonRpcId;
-  readonly result?: unknown;
-  readonly error?: {
-    readonly code: number;
-    readonly message: string;
-    readonly data?: unknown;
-  };
-}
 
 interface ToolDefinition {
   readonly name: string;
@@ -39,13 +17,9 @@ interface ToolDefinition {
   readonly handler: (argumentsValue: Record<string, unknown>) => Promise<McpToolResult>;
 }
 
-interface McpToolResult {
-  readonly content: Array<{ type: 'text'; text: string }>;
-  readonly structuredContent?: Record<string, unknown>;
-  readonly isError?: boolean;
-}
+type McpToolResult = CallToolResult;
+type McpTaskResult = CreateTaskResult;
 
-const PROTOCOL_VERSION = '2025-03-26';
 const SERVER_VERSION = '0.0.1';
 const label = getMcpServerLabelFromEnv();
 
@@ -72,141 +46,6 @@ const runtimeSettings = getRuntimeSettingsFromEnv();
 const apiClient = new ManulApiClient(async () => runtimeSettings);
 const manulServer = new ManulMcpServer(apiClient, logger);
 const tools = new Map<string, ToolDefinition>(createTools().map((tool) => [tool.name, tool]));
-
-let buffer = Buffer.alloc(0);
-
-process.stdin.on('data', (chunk: Buffer) => {
-  buffer = Buffer.concat([buffer, chunk]);
-  consumeBuffer().catch((error) => {
-    logger.error(error instanceof Error ? error.message : 'Unexpected MCP bridge failure.');
-  });
-});
-
-process.stdin.on('end', () => {
-  process.exit(0);
-});
-
-logger.info(`Starting ${label} MCP bridge against ${runtimeSettings.apiBaseUrl}`);
-
-async function consumeBuffer(): Promise<void> {
-  for (;;) {
-    const headerEnd = buffer.indexOf('\r\n\r\n');
-    if (headerEnd === -1) {
-      return;
-    }
-
-    const headersText = buffer.subarray(0, headerEnd).toString('utf8');
-    const contentLength = getContentLength(headersText);
-    const totalLength = headerEnd + 4 + contentLength;
-    if (buffer.length < totalLength) {
-      return;
-    }
-
-    const body = buffer.subarray(headerEnd + 4, totalLength).toString('utf8');
-    buffer = buffer.subarray(totalLength);
-
-    const message = JSON.parse(body) as JsonRpcRequest | JsonRpcNotification;
-    await handleMessage(message);
-  }
-}
-
-async function handleMessage(message: JsonRpcRequest | JsonRpcNotification): Promise<void> {
-  if ('id' in message && message.id !== undefined) {
-    await handleRequest(message as JsonRpcRequest);
-    return;
-  }
-
-  await handleNotification(message);
-}
-
-async function handleRequest(request: JsonRpcRequest): Promise<void> {
-  try {
-    switch (request.method) {
-      case 'initialize':
-        sendResponse({
-          jsonrpc: '2.0',
-          id: request.id ?? null,
-          result: {
-            protocolVersion: readProtocolVersion(request.params),
-            capabilities: {
-              tools: {
-                listChanged: false,
-              },
-            },
-            serverInfo: {
-              name: 'manul-mcp-server',
-              version: SERVER_VERSION,
-              title: label,
-            },
-          },
-        });
-        return;
-      case 'ping':
-        sendResponse({ jsonrpc: '2.0', id: request.id ?? null, result: {} });
-        return;
-      case 'tools/list':
-        sendResponse({
-          jsonrpc: '2.0',
-          id: request.id ?? null,
-          result: {
-            tools: [...tools.values()].map(({ name, description, inputSchema }) => ({
-              name,
-              description,
-              inputSchema,
-            })),
-          },
-        });
-        return;
-      case 'tools/call':
-        await handleToolsCall(request);
-        return;
-      default:
-        sendError(request.id ?? null, -32601, `Unsupported MCP method: ${request.method}`);
-    }
-  } catch (error) {
-    sendError(
-      request.id ?? null,
-      -32000,
-      error instanceof Error ? error.message : 'Unexpected MCP request failure.',
-    );
-  }
-}
-
-async function handleNotification(notification: JsonRpcNotification): Promise<void> {
-  if (notification.method === 'notifications/initialized') {
-    logger.info('MCP client initialized.');
-    return;
-  }
-
-  logger.debug('Ignored notification', notification);
-}
-
-async function handleToolsCall(request: JsonRpcRequest): Promise<void> {
-  const params = asObject(request.params);
-  const name = asString(params.name);
-  const tool = tools.get(name);
-  if (!tool) {
-    sendResponse({
-      jsonrpc: '2.0',
-      id: request.id ?? null,
-      result: createErrorResult(`Unknown ManulMcpServer MCP tool: ${name}`),
-    });
-    return;
-  }
-
-  const argumentsValue = asObject(params.arguments);
-  try {
-    const result = await tool.handler(argumentsValue);
-    sendResponse({ jsonrpc: '2.0', id: request.id ?? null, result });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Tool execution failed.';
-    sendResponse({
-      jsonrpc: '2.0',
-      id: request.id ?? null,
-      result: createErrorResult(message),
-    });
-  }
-}
 
 function createTools(): ToolDefinition[] {
   return [
@@ -414,33 +253,12 @@ function isApiFailure(value: unknown): value is { ok: false; error: string } {
   return typeof value === 'object' && value !== null && (value as { ok?: unknown }).ok === false && typeof (value as { error?: unknown }).error === 'string';
 }
 
-function getContentLength(headersText: string): number {
-  const headerLines = headersText.split('\r\n');
-  for (const line of headerLines) {
-    const match = /^Content-Length:\s*(\d+)$/iu.exec(line.trim());
-    if (match) {
-      return Number(match[1]);
-    }
-  }
-
-  throw new Error('Missing Content-Length header in MCP stdio message.');
-}
-
-function readProtocolVersion(params: unknown): string {
-  const value = asObject(params).protocolVersion;
-  return typeof value === 'string' && value.trim().length > 0 ? value : PROTOCOL_VERSION;
-}
-
 function asObject(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return {};
   }
 
   return value as Record<string, unknown>;
-}
-
-function asString(value: unknown): string {
-  return typeof value === 'string' ? value : '';
 }
 
 function requireString(argumentsValue: Record<string, unknown>, key: string): string {
@@ -452,19 +270,106 @@ function requireString(argumentsValue: Record<string, unknown>, key: string): st
   return value;
 }
 
-function sendResponse(response: JsonRpcResponse): void {
-  const payload = JSON.stringify(response);
-  process.stdout.write(`Content-Length: ${Buffer.byteLength(payload, 'utf8')}\r\n\r\n${payload}`);
+function createSdkServer(): Server {
+  const server = new Server(
+    {
+      name: 'manul-mcp-server',
+      version: SERVER_VERSION,
+    },
+    {
+      capabilities: {
+        tools: {
+          listChanged: false,
+        },
+      },
+    },
+  );
+
+  server.oninitialized = () => {
+    logger.info('MCP client initialized.');
+  };
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: [...tools.values()].map(({ name, description, inputSchema }) => ({
+      name,
+      description,
+      inputSchema,
+      execution: {
+        taskSupport: 'forbidden',
+      },
+    })),
+  }));
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    if (request.params.task) {
+      return createForbiddenTaskResult(request.params.name);
+    }
+
+    const tool = tools.get(request.params.name);
+    if (!tool) {
+      return createErrorResult(`Unknown ManulMcpServer MCP tool: ${request.params.name}`);
+    }
+
+    try {
+      return await tool.handler(asObject(request.params.arguments));
+    } catch (error) {
+      return createErrorResult(error instanceof Error ? error.message : 'Tool execution failed.');
+    }
+  });
+
+  return server;
 }
 
-function sendError(id: JsonRpcId, code: number, message: string, data?: unknown): void {
-  sendResponse({
-    jsonrpc: '2.0',
-    id,
-    error: {
-      code,
-      message,
-      data,
+function createForbiddenTaskResult(toolName: string): McpTaskResult {
+  const timestamp = new Date().toISOString();
+  return {
+    task: {
+      taskId: `manul-task-${toolName}-${Date.now()}`,
+      status: 'failed',
+      ttl: null,
+      createdAt: timestamp,
+      lastUpdatedAt: timestamp,
+      statusMessage: `Task mode is not supported for ${toolName}. Use a normal tools/call request instead.`,
     },
-  });
+  };
 }
+
+let activeServer: Server | undefined;
+
+async function main(): Promise<void> {
+  logger.info(`Starting ${label} MCP bridge against ${runtimeSettings.apiBaseUrl}`);
+
+  const server = createSdkServer();
+  const transport = new StdioServerTransport();
+  activeServer = server;
+
+  await server.connect(transport);
+  logger.info('ManulMcpServer MCP stdio transport connected.');
+}
+
+async function shutdown(signal: string): Promise<void> {
+  logger.info(`Received ${signal}, shutting down MCP bridge.`);
+  await activeServer?.close();
+  process.exit(0);
+}
+
+process.once('SIGINT', () => {
+  void shutdown('SIGINT');
+});
+
+process.once('SIGTERM', () => {
+  void shutdown('SIGTERM');
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error(error instanceof Error ? error.stack ?? error.message : 'Uncaught MCP bridge exception.');
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  logger.error(reason instanceof Error ? reason.stack ?? reason.message : 'Unhandled MCP bridge rejection.');
+  process.exit(1);
+});
+
+void main().catch((error) => {
+  logger.error(error instanceof Error ? error.stack ?? error.message : 'Fatal MCP bridge startup error.');
+  process.exit(1);
+});

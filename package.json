@@ -141,10 +141,16 @@
     "vscode:prepublish": "npm run build",
     "package": "vsce package"
   },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  },
   "devDependencies": {
     "@types/node": "^20.17.57",
     "@types/vscode": "^1.110.0",
     "@vscode/vsce": "^3.2.2",
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
   }
 }
