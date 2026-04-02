@@ -109,6 +109,13 @@ Open **Settings** (Ctrl+,) and search for `manul`:
 | `manul.requestTimeoutMs` | `60000` | Timeout in ms for engine calls. |
 | `manul.logNormalizedDsl` | `true` | Log auto-corrected DSL in the output panel. |
 | `manul.mcpServerLabel` | `ManulMcpServer` | Label shown in the MCP Servers view. |
+| `manul.apiBaseUrl` | `http://127.0.0.1:8000` | Base URL for the ManulEngine HTTP API used by the editor **Run Step** and **Run Hunt File** commands. |
+
+> **Note:** The editor title bar **Run** commands (`Run Step`, `Run Hunt File`) connect to the ManulEngine HTTP API at `manul.apiBaseUrl`. You need a running ManulEngine server for those commands to work:
+> ```bash
+> manul serve
+> ```
+> MCP tools (`manul_run_step`, `manul_run_goal`, etc.) use the bundled Python runner directly and do **not** require a separate HTTP server.
 
 ---
 

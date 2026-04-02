@@ -37,7 +37,12 @@ export class ManulMcpServer {
     }
 
     const issues = dsl ? validateDocument(dsl) : normalizedSteps.flatMap((step, index) => validateStep(step, index + 1));
-    this.throwIfBlockingIssues(issues, normalizedSteps[0]);
+    const blockingIssue = issues.find((issue) => issue.severity === 'error');
+    const failingInput =
+      blockingIssue?.line !== undefined && blockingIssue.line > 0 && blockingIssue.line <= normalizedSteps.length
+        ? (normalizedSteps[blockingIssue.line - 1] ?? normalizedSteps[0])
+        : normalizedSteps[0];
+    this.throwIfBlockingIssues(issues, failingInput);
 
     this.output.step(`Executing ${normalizedSteps.length} step(s).`);
     const response = await this.apiClient.runSteps(normalizedSteps, dsl);

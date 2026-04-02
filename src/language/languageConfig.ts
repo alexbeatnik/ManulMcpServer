@@ -19,7 +19,7 @@ export function registerLanguageConfiguration(): vscode.Disposable {
     ],
     wordPattern: /(-?\d*\.\d\w*)|([^\s\[\]\{\}\(\),:]+)/gu,
     indentationRules: {
-      increaseIndentPattern: /^\s*(STEP\s+\d+\s*:|\[(?:SETUP|TEARDOWN)\])\s*$/u,
+      increaseIndentPattern: /^\s*(STEP(?:\s+\d+)?\s*:[^\r\n]*|\[(?:SETUP|TEARDOWN)\])\s*$/u,
       decreaseIndentPattern: /^\s*\[END\s+(?:SETUP|TEARDOWN)\]\s*$/u,
     },
   });

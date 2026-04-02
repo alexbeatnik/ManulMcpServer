@@ -238,12 +238,17 @@ export class PythonRunner {
 
       child.on('exit', (code) => {
         this.logger.warn(`Python runner exited (code ${String(code)})`);
+        const wasStarting = !this.ready;
         this.ready = false;
         this.starting = false;
         this.process = null;
         const exitErr = new Error(`Runner process exited with code ${String(code)}`);
         for (const w of this.readyWaiters) { w.reject(exitErr); }
         this.readyWaiters.length = 0;
+        // Reject the startup promise if the process exited before ever becoming ready
+        if (wasStarting) {
+          reject(exitErr);
+        }
         // Reject any pending calls
         for (const cb of this.pending.values()) {
           cb({ ok: false, error: exitErr.message });

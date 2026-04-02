@@ -65,6 +65,7 @@ export function validateDocument(documentText: string): ValidationIssue[] {
   let insideHookBlock = false;
   let currentHookStartLine = 0;
   let currentStepHeader = false;
+  let doneSeen = false;
 
   for (let index = 0; index < lines.length; index += 1) {
     const rawLine = lines[index] ?? '';
@@ -72,6 +73,11 @@ export function validateDocument(documentText: string): ValidationIssue[] {
     const trimmed = rawLine.trim();
 
     if (!trimmed || trimmed.startsWith('#')) {
+      continue;
+    }
+
+    if (doneSeen) {
+      issues.push(createIssue(lineNumber, 1, rawLine.length + 1, 'Content after DONE. is not allowed.', 'warning', 'content-after-done'));
       continue;
     }
 
@@ -125,6 +131,8 @@ export function validateDocument(documentText: string): ValidationIssue[] {
       if (rawLine !== trimmed) {
         issues.push(createIssue(lineNumber, 1, rawLine.length + 1, 'DONE. must be flush-left.', 'warning', 'indentation-done'));
       }
+      doneSeen = true;
+      currentStepHeader = false;
       continue;
     }
 

@@ -159,7 +159,14 @@ function createTools(): ToolDefinition[] {
         if (path.extname(resolvedFilePath).toLowerCase() !== '.hunt') {
           throw new Error('Access denied: only .hunt files may be read by manul_run_hunt_file');
         }
-        const dsl = await fs.readFile(resolvedFilePath, 'utf8');
+        // Resolve symlinks so a link inside the workspace cannot reference a target outside it
+        const realRoot = await fs.realpath(workspaceRoot);
+        const realFilePath = await fs.realpath(resolvedFilePath);
+        const realRelative = path.relative(realRoot, realFilePath);
+        if (realRelative.startsWith('..') || path.isAbsolute(realRelative)) {
+          throw new Error(`Access denied: file path must be inside the workspace (${workspaceRoot})`);
+        }
+        const dsl = await fs.readFile(realFilePath, 'utf8');
         const steps = extractRunnableSteps(dsl);
         const result = await manulServer.runSteps(steps, dsl);
         return createExecutionResult(`Executed ${steps.length} ManulMcpServer step(s) from ${filePath}.`, {
@@ -252,6 +259,16 @@ function createTools(): ToolDefinition[] {
         }
         if (path.extname(resolvedFilePath).toLowerCase() !== '.hunt') {
           throw new Error('Access denied: only .hunt files may be written by manul_save_hunt');
+        }
+        // Resolve symlinks on the parent directory (the file may not exist yet) so a
+        // symlinked directory inside the workspace cannot point to a target outside it
+        const realRoot = await fs.realpath(workspaceRoot);
+        const parentDir = path.dirname(resolvedFilePath);
+        const realParent = await fs.realpath(parentDir);
+        const realFilePath = path.join(realParent, path.basename(resolvedFilePath));
+        const realRelative = path.relative(realRoot, realFilePath);
+        if (realRelative.startsWith('..') || path.isAbsolute(realRelative)) {
+          throw new Error(`Access denied: save path must be inside the workspace (${workspaceRoot})`);
         }
         const response = await pythonRunner.saveHunt(filePath, content);
         return createExecutionResult(`Hunt file saved.`, { response });

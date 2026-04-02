@@ -77,6 +77,7 @@ export function normalizeGoal(goal: string): GoalNormalizationResult {
 export function extractRunnableSteps(dsl: string): string[] {
   const steps: string[] = [];
   const lines = dsl.split(/\r?\n/u);
+  let insideHookBlock = false;
 
   for (const line of lines) {
     const trimmed = line.trim();
@@ -84,12 +85,22 @@ export function extractRunnableSteps(dsl: string): string[] {
       continue;
     }
 
+    if (/^\[(SETUP|TEARDOWN)\]$/iu.test(trimmed)) {
+      insideHookBlock = true;
+      continue;
+    }
+
+    if (/^\[END\s+(SETUP|TEARDOWN)\]$/iu.test(trimmed)) {
+      insideHookBlock = false;
+      continue;
+    }
+
+    if (insideHookBlock) {
+      continue;
+    }
+
     if (
       trimmed.startsWith('@') ||
-      trimmed === '[SETUP]' ||
-      trimmed === '[END SETUP]' ||
-      trimmed === '[TEARDOWN]' ||
-      trimmed === '[END TEARDOWN]' ||
       /^STEP\s+\d*\s*:/iu.test(trimmed) ||
       trimmed === 'DONE.'
     ) {
@@ -110,27 +121,17 @@ function splitGoal(goal: string): string[] {
 }
 
 function correctTypos(step: string, fixes: string[]): string {
-  const segments = step.split(/(\s+)/u);
-  let changed = false;
-
-  const corrected = segments
-    .map((segment) => {
-      const lower = segment.toLowerCase();
-      const replacement = TYPO_CORRECTIONS.get(lower);
-      if (!replacement) {
-        return segment;
-      }
-
-      changed = true;
-      return preserveCapitalization(segment, replacement);
-    })
-    .join('');
-
-  if (changed) {
-    fixes.push('Corrected common DSL verb typos.');
+  const match = /^(\s*)(\S+)([\s\S]*)$/u.exec(step);
+  if (!match) {
+    return step;
   }
-
-  return corrected;
+  const [, leadingWhitespace, verb, remainder] = match;
+  const replacement = TYPO_CORRECTIONS.get(verb.toLowerCase());
+  if (!replacement) {
+    return step;
+  }
+  fixes.push('Corrected common DSL verb typos.');
+  return `${leadingWhitespace}${preserveCapitalization(verb, replacement)}${remainder}`;
 }
 
 function looksLikeDsl(step: string): boolean {

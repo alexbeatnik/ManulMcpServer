@@ -68,7 +68,7 @@ function findCommandForLine(line: string): CommandDefinition | undefined {
       return true;
     }
 
-    if (command.label === 'Wait for element' && normalized.startsWith('WAIT FOR')) {
+    if (command.label === 'Wait for element' && normalized.startsWith('WAIT FOR') && !normalized.startsWith('WAIT FOR RESPONSE')) {
       return true;
     }
 
