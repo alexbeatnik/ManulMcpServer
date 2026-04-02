@@ -1,8 +1,23 @@
 # ManulMcpServer
 
-VS Code extension that turns [ManulEngine](https://github.com/manul/manul-engine) into a native MCP server available directly in GitHub Copilot chat. Write `.hunt` automation scripts, run them from the editor, or invoke them through Copilot using natural language.
+[![Status: Alpha](https://img.shields.io/badge/status-alpha-d97706)](#)
 
-> **Alpha.** API and file formats are subject to change.
+VS Code extension that turns [ManulEngine](https://github.com/alexbeatnik/ManulEngine) into a native MCP server available directly in GitHub Copilot chat. Write `.hunt` automation scripts, run them from the editor, or invoke them through Copilot using natural language.
+
+> **Alpha.** Developed alongside ManulEngine — both projects are in active development. API and file formats are subject to change.
+
+---
+
+## ManulEngine
+
+This extension requires **ManulEngine** — the deterministic web and desktop automation runtime that powers the `.hunt` DSL.
+
+| | |
+|---|---|
+| PyPI | [![PyPI](https://img.shields.io/pypi/v/manul-engine?label=PyPI&logo=pypi)](https://pypi.org/project/manul-engine/) |
+| VS Code Marketplace | [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/manul-engine.manul-engine?label=VS%20Code%20Marketplace&logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=manul-engine.manul-engine) |
+| GitHub | [alexbeatnik/ManulEngine](https://github.com/alexbeatnik/ManulEngine) |
+| Status | Alpha — battle-tested on real-world DOMs, APIs may evolve |
 
 ---
 
@@ -18,10 +33,11 @@ VS Code extension that turns [ManulEngine](https://github.com/manul/manul-engine
 ## Requirements
 
 - VS Code 1.110 or newer
-- Python 3.10+ with [ManulEngine](https://github.com/manul/manul-engine) installed:
+- Python 3.10+ with [ManulEngine](https://pypi.org/project/manul-engine/) installed:
 
 ```bash
 pip install manul-engine
+playwright install
 ```
 
 A workspace-local `.venv` is automatically detected and used if present.
