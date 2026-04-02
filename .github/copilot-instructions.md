@@ -9,7 +9,7 @@ When using ManulMcpServer tools (`manul_run_step`, `manul_run_hunt_file`, etc.) 
 3. **After completing the task**, always propose saving a `.hunt` file:
    - Generate clean, properly-formatted DSL (flush-left `@context:`, `@title:`, `STEP N:`, `DONE.`)
    - Ask the user: *"Should I save this as a hunt file so it can be replayed later?"*
-   - If yes, save with `manul_save_hunt` to `/home/alexbeatnik/Documents/ManulEngine/tests/<descriptive_name>.hunt`
+   - If yes, save with `manul_save_hunt` to `tests/<descriptive_name>.hunt`
 
 ## Hunt File Format Rules
 

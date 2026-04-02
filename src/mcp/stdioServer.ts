@@ -103,10 +103,8 @@ function createTools(): ToolDefinition[] {
         const goal = requireString(argumentsValue, 'goal');
         const title = typeof argumentsValue['title'] === 'string' ? argumentsValue['title'] : undefined;
         const context = typeof argumentsValue['context'] === 'string' ? argumentsValue['context'] : undefined;
-        // Keep exec count before run so proposal only covers new steps
-        if (context || title) {
-          await pythonRunner.reset(context ?? goal, title ?? goal);
-        }
+        // Always reset so the proposal covers only steps from this goal invocation
+        await pythonRunner.reset(context ?? goal, title ?? goal);
         const result = await manulServer.runGoal(goal);
         const data = asObject((result.response as { ok: boolean; data?: unknown }).data);
         const huntProposal = typeof data['hunt_proposal'] === 'string' ? data['hunt_proposal'] : '';
@@ -152,7 +150,16 @@ function createTools(): ToolDefinition[] {
       },
       handler: async (argumentsValue) => {
         const filePath = requireString(argumentsValue, 'filePath');
-        const dsl = await fs.readFile(filePath, 'utf8');
+        const workspaceRoot = path.resolve(runtimeSettings.workspacePath || process.cwd());
+        const resolvedFilePath = path.isAbsolute(filePath) ? filePath : path.resolve(workspaceRoot, filePath);
+        const relative = path.relative(workspaceRoot, resolvedFilePath);
+        if (relative.startsWith('..') || path.isAbsolute(relative)) {
+          throw new Error(`Access denied: file path must be inside the workspace (${workspaceRoot})`);
+        }
+        if (path.extname(resolvedFilePath).toLowerCase() !== '.hunt') {
+          throw new Error('Access denied: only .hunt files may be read by manul_run_hunt_file');
+        }
+        const dsl = await fs.readFile(resolvedFilePath, 'utf8');
         const steps = extractRunnableSteps(dsl);
         const result = await manulServer.runSteps(steps, dsl);
         return createExecutionResult(`Executed ${steps.length} ManulMcpServer step(s) from ${filePath}.`, {
@@ -237,6 +244,15 @@ function createTools(): ToolDefinition[] {
       handler: async (argumentsValue) => {
         const filePath = requireString(argumentsValue, 'path');
         const content = requireString(argumentsValue, 'content');
+        const workspaceRoot = path.resolve(runtimeSettings.workspacePath || process.cwd());
+        const resolvedFilePath = path.isAbsolute(filePath) ? filePath : path.resolve(workspaceRoot, filePath);
+        const relative = path.relative(workspaceRoot, resolvedFilePath);
+        if (relative.startsWith('..') || path.isAbsolute(relative)) {
+          throw new Error(`Access denied: save path must be inside the workspace (${workspaceRoot})`);
+        }
+        if (path.extname(resolvedFilePath).toLowerCase() !== '.hunt') {
+          throw new Error('Access denied: only .hunt files may be written by manul_save_hunt');
+        }
         const response = await pythonRunner.saveHunt(filePath, content);
         return createExecutionResult(`Hunt file saved.`, { response });
       },

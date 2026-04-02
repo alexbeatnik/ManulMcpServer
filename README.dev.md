@@ -163,7 +163,7 @@ When VS Code launches the MCP bridge (`stdioServer.js`), it passes:
 | `MANUL_WORKSPACE_PATH` | VS Code workspace folder | `cwd` for Python runner, venv detection |
 | `MANUL_HEADLESS` | `manul.headless` setting | Playwright headless flag |
 | `MANUL_REQUEST_TIMEOUT_MS` | `manul.requestTimeoutMs` setting | JSON-line call timeout |
-| `MANUL_MCP_SERVER_LABEL` | `manul.mcpServerLabel` setting | Display label |
+| `MANUL_MCP_LABEL` | `manul.mcpServerLabel` setting | Display label |
 
 ## Key Files to Know
 
