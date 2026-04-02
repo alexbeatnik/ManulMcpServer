@@ -149,8 +149,5 @@
     "@types/vscode": "^1.110.0",
     "@vscode/vsce": "^3.2.2",
     "typescript": "^5.8.3"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0"
   }
 }

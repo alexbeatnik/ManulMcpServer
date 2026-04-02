@@ -13,7 +13,7 @@ import { ManulApiClient } from './services/apiClient';
 import { ManulOutputChannel } from './services/output';
 import { ManulStatusBar } from './services/statusBar';
 
-export async function activate(context: vscode.ExtensionContext): Promise<void> {
+export function activate(context: vscode.ExtensionContext): void {
   const output = new ManulOutputChannel();
   const statusBar = new ManulStatusBar();
   const settingsProvider = () => getExtensionSettings(context);
@@ -27,24 +27,46 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     registerCompletionProvider(),
     registerHoverProvider(),
     registerDiagnostics(output),
-    registerMcpServerProvider(context),
     vscode.commands.registerCommand('manul.runStep', createRunStepCommand(mcpServer, output, statusBar, settingsProvider)),
     vscode.commands.registerCommand('manul.runFile', createRunFileCommand(mcpServer, output, statusBar)),
     vscode.window.onDidChangeActiveTextEditor((editor) => statusBar.sync(editor)),
   );
 
+  try {
+    context.subscriptions.push(registerMcpServerProvider(context));
+    output.info('ManulMcpServer MCP provider registered.');
+  } catch (error) {
+    output.error(`Failed to register ManulMcpServer MCP provider: ${toErrorMessage(error)}.`);
+  }
+
   statusBar.sync(vscode.window.activeTextEditor);
   output.info('ManulMcpServer extension activated.');
-  output.info('ManulMcpServer MCP provider registered.');
 
-  const state = await mcpServer.getState();
-  if (state.ok) {
-    output.debug('Backend state', state.data);
-  } else {
-    output.warn(`Backend state check failed: ${state.error}`);
-  }
+  void warmBackendState(mcpServer, output);
 }
 
 export function deactivate(): void {
   // VS Code disposes registered resources from the extension context.
+}
+
+async function warmBackendState(mcpServer: ManulMcpServer, output: ManulOutputChannel): Promise<void> {
+  try {
+    const state = await mcpServer.getState();
+    if (state.ok) {
+      output.debug('Backend state', state.data);
+      return;
+    }
+
+    output.warn(`Backend state check failed: ${state.error}`);
+  } catch (error) {
+    output.warn(`Backend state check crashed: ${toErrorMessage(error)}`);
+  }
+}
+
+function toErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  return 'Unknown error';
 }
