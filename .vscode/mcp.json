@@ -1,0 +1,19 @@
+{
+    "servers": {
+        "ManulMcpServer": {
+            "command": "node",
+            "args": [
+                "${userHome}/.vscode/extensions/manul.manul-mcp-server-0.0.1/out/mcp/stdioServer.js"
+            ],
+            "env": {
+                "MANUL_WORKSPACE_PATH": "${workspaceFolder}",
+                "MANUL_HEADLESS": "false",
+                "MANUL_SESSION_ID": "",
+                "MANUL_REQUEST_TIMEOUT_MS": "120000",
+                "MANUL_LOG_NORMALIZED_DSL": "false",
+                "MANUL_MCP_LABEL": "ManulMcpServer"
+            },
+            "type": "stdio"
+        }
+    }
+}
