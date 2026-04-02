@@ -1,0 +1,70 @@
+{
+  "Manul Step": {
+    "prefix": "step",
+    "body": "STEP ${1:1}: ${2:Description}",
+    "description": "Insert a STEP header"
+  },
+  "Manul Navigate": {
+    "prefix": "navigate",
+    "body": "NAVIGATE to ${1:https://example.com}",
+    "description": "Navigate to a URL"
+  },
+  "Manul Fill": {
+    "prefix": "fill",
+    "body": "Fill '${1:target}' field with '${2:value}'",
+    "description": "Fill an input field"
+  },
+  "Manul Fill With Verify": {
+    "prefix": "fillverify",
+    "body": [
+      "Fill '${1:target}' field with '${2:value}'",
+      "Verify '${1:target}' field has value '${2:value}'"
+    ],
+    "description": "Fill a field and verify the input value"
+  },
+  "Manul Click": {
+    "prefix": "click",
+    "body": "Click the '${1:target}' button",
+    "description": "Click a button"
+  },
+  "Manul Verify": {
+    "prefix": "verify",
+    "body": "VERIFY that '${1:target}' is present",
+    "description": "Verify a target is present"
+  },
+  "Manul Extract": {
+    "prefix": "extract",
+    "body": "EXTRACT the '${1:target}' into {${2:variable}}",
+    "description": "Extract text into a variable"
+  },
+  "Manul Wait For": {
+    "prefix": "waitfor",
+    "body": "Wait for '${1:target}' to ${2|be visible,be hidden,disappear|}",
+    "description": "Explicit wait for visibility state"
+  },
+  "Manul Setup Block": {
+    "prefix": "setup",
+    "body": [
+      "[SETUP]",
+      "    PRINT \"${1:Preparing setup}\"",
+      "    CALL PYTHON ${2:module}.${3:function}",
+      "[END SETUP]"
+    ],
+    "description": "Insert a SETUP block"
+  },
+  "Manul Teardown Block": {
+    "prefix": "teardown",
+    "body": [
+      "[TEARDOWN]",
+      "    PRINT \"${1:Cleaning up}\"",
+      "    CALL PYTHON ${2:module}.${3:function}",
+      "[END TEARDOWN]"
+    ],
+    "description": "Insert a TEARDOWN block"
+  },
+  "Manul Done": {
+    "prefix": "done",
+    "body": "DONE.",
+    "description": "Finish the hunt file"
+  }
+}

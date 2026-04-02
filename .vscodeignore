@@ -1,0 +1,10 @@
+src/**
+.git/**
+.github/**
+.vscode/**
+.gitignore
+tsconfig.json
+*.tsbuildinfo
+node_modules/**/test/**
+.venv/**
+venv/**

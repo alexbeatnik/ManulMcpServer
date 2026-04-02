@@ -1,0 +1,163 @@
+{
+  "name": "manul-mcp-server",
+  "displayName": "ManulMcpServer",
+  "description": "VS Code extension that publishes ManulEngine as an MCP server and supports .hunt authoring.",
+  "version": "0.0.1",
+  "publisher": "manul",
+  "license": "Apache-2.0",
+  "engines": {
+    "vscode": "^1.110.0"
+  },
+  "categories": [
+    "AI",
+    "Programming Languages",
+    "Snippets",
+    "Other"
+  ],
+  "keywords": [
+    "manul",
+    "hunt",
+    "mcp",
+    "automation",
+    "manulengine",
+    "developer-tools"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/manul/manul-vscode"
+  },
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "manul.runStep",
+        "title": "Run Step",
+        "category": "ManulMcpServer",
+        "icon": "$(play)"
+      },
+      {
+        "command": "manul.runFile",
+        "title": "Run Hunt File",
+        "category": "ManulMcpServer",
+        "icon": "$(run-all)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "manul.runFile",
+          "when": "resourceExtname == .hunt",
+          "group": "navigation@10"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "manul.runFile",
+          "when": "resourceExtname == .hunt",
+          "group": "navigation@10"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "manul.runFile",
+          "when": "resourceExtname == .hunt || editorLangId == hunt"
+        },
+        {
+          "command": "manul.runStep"
+        }
+      ]
+    },
+    "languages": [
+      {
+        "id": "hunt",
+        "aliases": [
+          "Hunt",
+          "hunt"
+        ],
+        "extensions": [
+          ".hunt"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "hunt",
+        "scopeName": "source.hunt",
+        "path": "./syntaxes/hunt.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "hunt",
+        "path": "./snippets/hunt.json"
+      }
+    ],
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "manul.mcp-servers",
+        "label": "ManulMcpServer"
+      }
+    ],
+    "configuration": {
+      "title": "ManulMcpServer",
+      "properties": {
+        "manul.apiBaseUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8000",
+          "description": "Base URL for the local ManulEngine FastAPI service."
+        },
+        "manul.sessionId": {
+          "type": "string",
+          "default": "",
+          "description": "Optional fixed session identifier to send with Manul API requests. Leave empty to let the extension generate and persist one."
+        },
+        "manul.requestTimeoutMs": {
+          "type": "number",
+          "default": 60000,
+          "minimum": 1000,
+          "description": "HTTP timeout in milliseconds for ManulEngine API calls."
+        },
+        "manul.logNormalizedDsl": {
+          "type": "boolean",
+          "default": true,
+          "description": "Log normalized DSL when a natural-language step is auto-corrected before execution."
+        },
+        "manul.pythonPath": {
+          "type": "string",
+          "default": "python3",
+          "description": "Python executable path used by the bundled Manul runner. Leave as python3 to auto-discover a workspace-local .venv first."
+        },
+        "manul.headless": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run the Manul browser session in headless mode."
+        },
+        "manul.mcpServerLabel": {
+          "type": "string",
+          "default": "ManulMcpServer",
+          "description": "Label shown in VS Code MCP Servers for the ManulMcpServer bridge published by this extension."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "check": "tsc -p ./ --noEmit",
+    "vscode:prepublish": "npm run build",
+    "package": "vsce package"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.57",
+    "@types/vscode": "^1.110.0",
+    "@vscode/vsce": "^3.2.2",
+    "typescript": "^5.8.3"
+  }
+}
