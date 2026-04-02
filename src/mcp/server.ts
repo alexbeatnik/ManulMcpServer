@@ -1,12 +1,11 @@
 import { getCommandKeywordSuggestions, normalizeGoal, normalizeNaturalLanguageStep } from '../dsl/builder';
 import { suggestClosestCommand, validateDocument, validateStep } from '../dsl/validator';
-import type { ManulApiClient } from '../services/apiClient';
 import type { ManulLogger } from '../services/logger';
-import type { GoalNormalizationResult, RunExecutionResult, ValidationIssue } from '../types/api';
+import type { GoalNormalizationResult, IManulBackend, RunExecutionResult, ValidationIssue } from '../types/api';
 
 export class ManulMcpServer {
   public constructor(
-    private readonly apiClient: ManulApiClient,
+    private readonly apiClient: IManulBackend,
     private readonly output: ManulLogger,
   ) {}
 

@@ -9,6 +9,9 @@ export interface ManulExtensionSettings {
   readonly requestTimeoutMs: number;
   readonly sessionId: string;
   readonly logNormalizedDsl: boolean;
+  readonly pythonPath: string;
+  readonly headless: boolean;
+  readonly workspacePath: string;
 }
 
 export async function getExtensionSettings(
@@ -24,6 +27,9 @@ export async function getExtensionSettings(
     requestTimeoutMs: normalizeTimeout(configuration.get<number>('requestTimeoutMs', 60000)),
     sessionId,
     logNormalizedDsl: configuration.get<boolean>('logNormalizedDsl', true),
+    pythonPath: configuration.get<string>('pythonPath', 'python3').trim() || 'python3',
+    headless: configuration.get<boolean>('headless', false),
+    workspacePath: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '',
   };
 }
 

@@ -59,3 +59,13 @@ export interface ManulEngineState {
   readonly lastRunAt?: string;
   readonly [key: string]: unknown;
 }
+
+/**
+ * Minimal backend interface shared by ManulApiClient (HTTP) and PythonRunner (subprocess).
+ * ManulMcpServer accepts either.
+ */
+export interface IManulBackend {
+  runStep(step: string): Promise<ApiResult>;
+  runSteps(steps: readonly string[], dsl?: string): Promise<ApiResult>;
+  getState(): Promise<ApiResult<ManulEngineState>>;
+}

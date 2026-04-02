@@ -9,6 +9,9 @@ export function getRuntimeSettingsFromEnv(env: NodeJS.ProcessEnv = process.env):
     requestTimeoutMs: normalizeTimeout(env.MANUL_REQUEST_TIMEOUT_MS),
     sessionId: (env.MANUL_SESSION_ID ?? '').trim(),
     logNormalizedDsl: normalizeBoolean(env.MANUL_LOG_NORMALIZED_DSL, true),
+    pythonPath: (env.MANUL_PYTHON_PATH ?? '').trim() || 'python3',
+    headless: normalizeBoolean(env.MANUL_HEADLESS, false),
+    workspacePath: (env.MANUL_WORKSPACE_PATH ?? '').trim(),
   };
 }
 

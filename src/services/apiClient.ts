@@ -1,7 +1,7 @@
 import type { ManulExtensionSettings } from '../config/settings';
-import type { ApiFailure, ApiResult, ApiSuccess, ManulEngineState } from '../types/api';
+import type { ApiFailure, ApiResult, ApiSuccess, IManulBackend, ManulEngineState } from '../types/api';
 
-export class ManulApiClient {
+export class ManulApiClient implements IManulBackend {
   public constructor(
     private readonly settingsProvider: () => Promise<ManulExtensionSettings>,
   ) {}

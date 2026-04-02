@@ -1,4 +1,5 @@
 import { promises as fs } from 'node:fs';
+import * as path from 'node:path';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
@@ -8,7 +9,7 @@ import { getRuntimeSettingsFromEnv, getMcpServerLabelFromEnv } from '../config/r
 import { extractRunnableSteps, normalizeGoal, normalizeNaturalLanguageStep } from '../dsl/builder';
 import { validateDocument, validateStep } from '../dsl/validator';
 import { ManulMcpServer } from './server';
-import { ManulApiClient } from '../services/apiClient';
+import { PythonRunner } from '../services/pythonRunner';
 
 interface ToolDefinition {
   readonly name: string;
@@ -43,15 +44,25 @@ const logger = {
 };
 
 const runtimeSettings = getRuntimeSettingsFromEnv();
-const apiClient = new ManulApiClient(async () => runtimeSettings);
-const manulServer = new ManulMcpServer(apiClient, logger);
+const runnerScriptPath = path.join(__dirname, '..', '..', 'python', 'manul_runner.py');
+const pythonRunner = new PythonRunner(
+  {
+    pythonPath: runtimeSettings.pythonPath,
+    runnerScriptPath,
+    timeoutMs: runtimeSettings.requestTimeoutMs,
+    headless: runtimeSettings.headless,
+    workspacePath: runtimeSettings.workspacePath,
+  },
+  logger,
+);
+const manulServer = new ManulMcpServer(pythonRunner, logger);
 const tools = new Map<string, ToolDefinition>(createTools().map((tool) => [tool.name, tool]));
 
 function createTools(): ToolDefinition[] {
   return [
     {
       name: 'manul_run_step',
-      description: 'Run a single Manul step. Accepts raw DSL or natural-language input and forwards the normalized step to the ManulMcpServer backend.',
+      description: 'Run a single Manul DSL step against the live browser session. Opens the browser the first time it is called. Accepts raw DSL (e.g. "NAVIGATE to https://example.com") or natural-language input.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -72,28 +83,38 @@ function createTools(): ToolDefinition[] {
     },
     {
       name: 'manul_run_goal',
-      description: 'Convert a natural-language goal into Manul steps, validate them, and execute them through the ManulMcpServer backend.',
+      description:
+        'Convert a natural-language goal into Manul DSL steps, execute them in the live browser session, ' +
+        'and return a ready-to-save .hunt file proposal. ' +
+        'The browser opens automatically on the first call. ' +
+        'After reviewing the proposal, call manul_save_hunt to persist it.',
       inputSchema: {
         type: 'object',
         properties: {
-          goal: { type: 'string', description: 'A short natural-language goal that should be converted into Manul steps.' },
+          goal: { type: 'string', description: 'A natural-language automation goal (e.g. "Navigate to Amazon and search for MacBook").' },
+          title: { type: 'string', description: 'Optional short title for the generated .hunt file.' },
+          context: { type: 'string', description: 'Optional strategic context to embed as @context: in the .hunt file.' },
         },
         required: ['goal'],
         additionalProperties: false,
       },
       handler: async (argumentsValue) => {
         const goal = requireString(argumentsValue, 'goal');
+        const title = typeof argumentsValue['title'] === 'string' ? argumentsValue['title'] : undefined;
+        const context = typeof argumentsValue['context'] === 'string' ? argumentsValue['context'] : undefined;
+        // Keep exec count before run so proposal only covers new steps
+        if (context || title) {
+          await pythonRunner.reset(context ?? goal, title ?? goal);
+        }
         const result = await manulServer.runGoal(goal);
-        return createExecutionResult('Executed a normalized ManulMcpServer goal.', {
-          normalization: result.normalization,
-          issues: result.issues,
-          response: result.response,
-        });
+        const data = asObject((result.response as { ok: boolean; data?: unknown }).data);
+        const huntProposal = typeof data['hunt_proposal'] === 'string' ? data['hunt_proposal'] : '';
+        return createGoalResult(goal, result.normalization, result.issues, result.response, huntProposal);
       },
     },
     {
       name: 'manul_run_hunt',
-      description: 'Validate and run a full .hunt document body through the ManulMcpServer backend.',
+      description: 'Validate and run a full .hunt document in the live browser session.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -106,17 +127,20 @@ function createTools(): ToolDefinition[] {
         const dsl = requireString(argumentsValue, 'dsl');
         const steps = extractRunnableSteps(dsl);
         const result = await manulServer.runSteps(steps, dsl);
+        const data = asObject((result.response as { ok: boolean; data?: unknown }).data);
+        const huntProposal = typeof data['hunt_proposal'] === 'string' ? data['hunt_proposal'] : '';
         return createExecutionResult(`Executed ${steps.length} ManulMcpServer step(s) from DSL.`, {
           stepCount: steps.length,
           normalization: result.normalization,
           issues: result.issues,
           response: result.response,
+          ...(huntProposal ? { hunt_proposal: huntProposal } : {}),
         });
       },
     },
     {
       name: 'manul_run_hunt_file',
-      description: 'Read a .hunt file from disk, validate it, and run it through the ManulMcpServer backend.',
+      description: 'Read a .hunt file from disk, validate it, and run it in the live browser session.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -182,7 +206,7 @@ function createTools(): ToolDefinition[] {
     },
     {
       name: 'manul_get_state',
-      description: 'Return the current backend state from the ManulMcpServer API.',
+      description: 'Return the current runner state: engine version, whether the browser is open, how many steps have been executed, and the accumulated hunt proposal.',
       inputSchema: {
         type: 'object',
         properties: {},
@@ -190,9 +214,30 @@ function createTools(): ToolDefinition[] {
       },
       handler: async () => {
         const response = await manulServer.getState();
-        return createExecutionResult('Fetched ManulMcpServer backend state.', {
+        return createExecutionResult('Fetched ManulMcpServer runner state.', {
           response,
         });
+      },
+    },
+    {
+      name: 'manul_save_hunt',
+      description:
+        'Save a .hunt file to disk. Typically called after manul_run_goal returns a hunt_proposal. ' +
+        'The file is created (or overwritten) at the given path.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'File path to write (e.g. "tests/amazon_search.hunt"). Relative paths resolve from the current working directory.' },
+          content: { type: 'string', description: 'Full .hunt file content to write.' },
+        },
+        required: ['path', 'content'],
+        additionalProperties: false,
+      },
+      handler: async (argumentsValue) => {
+        const filePath = requireString(argumentsValue, 'path');
+        const content = requireString(argumentsValue, 'content');
+        const response = await pythonRunner.saveHunt(filePath, content);
+        return createExecutionResult(`Hunt file saved.`, { response });
       },
     },
     {
@@ -234,6 +279,47 @@ function createExecutionResult(summary: string, data: Record<string, unknown>): 
   }
 
   return createSuccessResult(summary, data);
+}
+
+function createGoalResult(
+  goal: string,
+  normalization: readonly unknown[],
+  issues: readonly unknown[],
+  response: unknown,
+  huntProposal: string,
+): McpToolResult {
+  if (isApiFailure(response)) {
+    return createErrorResult(`Goal execution failed: "${goal}"\n\n${response.error}`);
+  }
+
+  const data = asObject((response as { data?: unknown }).data);
+  const results = Array.isArray(data['results'])
+    ? (data['results'] as Array<{ step: string; status: string; error?: string }>)
+    : [];
+  const passCount = typeof data['pass_count'] === 'number' ? data['pass_count'] : results.filter((r) => r.status === 'pass').length;
+  const total = typeof data['total'] === 'number' ? data['total'] : results.length;
+
+  const stepLines = results
+    .map((r) => `  ${r.status === 'pass' ? '✓' : '✗'} ${r.step}${r.error ? ` — ${r.error}` : ''}`)
+    .join('\n');
+
+  let text = `Goal executed: "${goal}"\nSteps: ${passCount}/${total} passed.`;
+  if (stepLines) {
+    text += `\n${stepLines}`;
+  }
+
+  if (huntProposal) {
+    text +=
+      `\n\n--- Proposed .hunt file ---\n${huntProposal}\n--- end ---` +
+      `\n\nTo save, call manul_save_hunt with the path and the content above.`;
+  } else {
+    text += '\n\nNo steps were executed successfully, so no hunt file was generated.';
+  }
+
+  return {
+    content: [{ type: 'text', text }],
+    structuredContent: { goal, normalization, issues, response, hunt_proposal: huntProposal },
+  };
 }
 
 function createErrorResult(message: string): McpToolResult {
@@ -335,7 +421,7 @@ function createForbiddenTaskResult(toolName: string): McpTaskResult {
 let activeServer: Server | undefined;
 
 async function main(): Promise<void> {
-  logger.info(`Starting ${label} MCP bridge against ${runtimeSettings.apiBaseUrl}`);
+  logger.info(`Starting ${label} MCP bridge (Python runner: ${runtimeSettings.pythonPath})`);
 
   const server = createSdkServer();
   const transport = new StdioServerTransport();
@@ -347,6 +433,7 @@ async function main(): Promise<void> {
 
 async function shutdown(signal: string): Promise<void> {
   logger.info(`Received ${signal}, shutting down MCP bridge.`);
+  await pythonRunner.shutdown().catch(() => {});
   await activeServer?.close();
   process.exit(0);
 }
