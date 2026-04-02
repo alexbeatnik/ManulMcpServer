@@ -43,6 +43,12 @@ syntaxes/
 
 This extension contributes a real MCP server definition provider, so after installation VS Code can discover `ManulMcpServer` directly in the `MCP Servers` section.
 
+Important:
+
+- `ManulMcpServer` will still always be visible in the `Extensions` view because it is delivered as a VS Code extension package.
+- The MCP server entry appears in `MCP Servers` only after VS Code activates the extension host and the provider is registered.
+- After installing or updating the VSIX, reload the window once so the MCP provider is registered at startup.
+
 How it works:
 
 - The extension registers `manul.mcp-servers` as an MCP server definition provider.
