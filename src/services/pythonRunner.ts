@@ -143,6 +143,16 @@ export class PythonRunner {
     return this.toApiResult(response);
   }
 
+  public async scanPage(): Promise<ApiResult> {
+    const response = await this.send('scan_page', {});
+    return this.toApiResult(response);
+  }
+
+  public async readPageText(): Promise<ApiResult> {
+    const response = await this.send('read_page_text', {});
+    return this.toApiResult(response);
+  }
+
   public async reset(context?: string, title?: string): Promise<ApiResult> {
     const params: JsonObject = {};
     if (context) params['context'] = context;

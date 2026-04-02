@@ -43,6 +43,101 @@ def _emit_raw(obj: dict[str, Any]) -> None:
     sys.stdout.flush()
 
 
+# Custom page-scan JS (enriched: resolves <label for> for radio/checkbox,
+# and includes manul_id when SNAPSHOT_JS has already stamped elements).
+_SCAN_PAGE_JS = """() => {
+    function isHidden(el) {
+        if (el.getAttribute('aria-hidden') === 'true') return true;
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 && r.height === 0) return true;
+        try {
+            const st = window.getComputedStyle(el);
+            if (st.display === 'none' || st.visibility === 'hidden' || parseFloat(st.opacity) === 0) return true;
+        } catch (_) {}
+        return false;
+    }
+    function bestLabel(el) {
+        const tag  = el.tagName ? el.tagName.toUpperCase() : '';
+        const type = (el.getAttribute('type') || '').toLowerCase();
+        // For radio/checkbox prefer the associated <label for="..."> text.
+        if (tag === 'INPUT' && (type === 'radio' || type === 'checkbox')) {
+            if (el.id) {
+                const lbl = document.querySelector('label[for="' + el.id + '"]');
+                if (lbl) return lbl.innerText.trim();
+            }
+            const closestLbl = el.closest('label');
+            if (closestLbl) return closestLbl.innerText.trim();
+            const nextSib = el.nextElementSibling;
+            if (nextSib && nextSib.tagName === 'LABEL') return nextSib.innerText.trim();
+        }
+        const text = (el.innerText || el.textContent || '').replace(/\\s+/g, ' ').trim();
+        if (text && text.length <= 80) return text;
+        const aria = el.getAttribute('aria-label') || '';
+        if (aria.trim()) return aria.trim();
+        const ph = el.getAttribute('placeholder') || '';
+        if (ph.trim()) return ph.trim();
+        const title = el.getAttribute('title') || '';
+        if (title.trim()) return title.trim();
+        const name = el.getAttribute('name') || '';
+        if (name.trim()) return name.trim();
+        const id = el.getAttribute('id') || '';
+        if (id.trim()) return id.trim();
+        return '';
+    }
+    function classify(el) {
+        const tag  = el.tagName ? el.tagName.toUpperCase() : '';
+        const type = (el.getAttribute('type') || '').toLowerCase();
+        const role = (el.getAttribute('role') || '').toLowerCase();
+        if (tag === 'SELECT') return 'select';
+        if (tag === 'INPUT' && type === 'checkbox') return 'checkbox';
+        if (tag === 'INPUT' && type === 'radio')    return 'radio';
+        if (tag === 'INPUT' && !['submit','reset','image','hidden','button'].includes(type)) return 'input';
+        if (tag === 'TEXTAREA') return 'input';
+        if (tag === 'BUTTON')   return 'button';
+        if (tag === 'A' && el.getAttribute('href') !== null) return 'link';
+        if (role === 'button')   return 'button';
+        if (role === 'link')     return 'link';
+        if (role === 'checkbox') return 'checkbox';
+        if (role === 'radio')    return 'radio';
+        if (role === 'combobox') return 'select';
+        if (role === 'switch')   return 'checkbox';
+        if (tag === 'INPUT' && type === 'submit') return 'button';
+        if (tag === 'INPUT' && type === 'button') return 'button';
+        return null;
+    }
+    function scanRoot(root, results, seen) {
+        const candidates = root.querySelectorAll(
+            'button, a[href], input, select, textarea, ' +
+            '[role="button"], [role="link"], [role="checkbox"], [role="radio"], ' +
+            '[role="combobox"], [role="switch"]'
+        );
+        for (const el of candidates) {
+            if (seen.has(el)) continue;
+            seen.add(el);
+            if (isHidden(el)) continue;
+            const kind  = classify(el);
+            if (!kind)  continue;
+            const label = bestLabel(el);
+            if (!label) continue;
+            const entry = { type: kind, identifier: label };
+            const mid = el.getAttribute('data-manul-id');
+            if (mid !== null) entry.manul_id = parseInt(mid, 10);
+            // Include current value for fillable elements so callers can verify state.
+            if ((kind === 'input' || kind === 'select') && el.value !== undefined && el.value !== '') {
+                entry.value = el.value;
+            }
+            results.push(entry);
+        }
+        for (const el of root.querySelectorAll('*')) {
+            if (el.shadowRoot) scanRoot(el.shadowRoot, results, seen);
+        }
+    }
+    const results = [];
+    const seen    = new WeakSet();
+    scanRoot(document, results, seen);
+    return JSON.stringify(results);
+}"""
+
 try:
     from manul_engine import ManulSession  # type: ignore[import]
 except ImportError as _e:
@@ -118,6 +213,16 @@ class ManulRunner:
             finally:
                 self._session = None
 
+    async def _scan_current_page(self) -> list[dict[str, Any]]:
+        """Scan the current page; returns [] if no session or on error."""
+        if self._session is None:
+            return []
+        try:
+            raw = await self._session.page.evaluate(_SCAN_PAGE_JS)  # type: ignore[union-attr]
+            return json.loads(raw)
+        except Exception:  # noqa: BLE001
+            return []
+
     # ── method handlers ────────────────────────────────────────────────────────
 
     async def _handle_run_steps(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -136,24 +241,34 @@ class ManulRunner:
         results: list[dict[str, Any]] = []
         newly_succeeded: list[str] = []
 
+        failed = False
         for step in steps:
             _log(f"Step: {step}")
             try:
                 result = await self._session.run_steps(step)  # type: ignore[union-attr]
                 status = getattr(result, "status", "pass")
+                page_scan = await self._scan_current_page()
                 if status == "pass":
                     newly_succeeded.append(step)
-                    results.append({"step": step, "status": "pass"})
+                    results.append({"step": step, "status": "pass", "page_scan": page_scan})
                 else:
                     # collect error info if available
                     err = getattr(result, "last_error", None) or str(result)
-                    results.append({"step": step, "status": status, "error": err})
+                    results.append({"step": step, "status": status, "error": err, "page_scan": page_scan})
                     _log(f"Step failed ({status}): {step}")
+                    failed = True
                     break  # stop on first failure — like the real engine does
             except Exception as exc:  # noqa: BLE001
-                results.append({"step": step, "status": "error", "error": str(exc)})
+                page_scan = await self._scan_current_page()
+                results.append({"step": step, "status": "error", "error": str(exc), "page_scan": page_scan})
                 _log(f"Step exception: {exc}")
+                failed = True
                 break
+
+        if failed:
+            # Close the session so the next call gets a fresh browser instead of
+            # re-using a potentially broken page/context.
+            await self._close_session()
 
         self._executed_steps.extend(newly_succeeded)
         hunt_proposal = _build_hunt(self._context, self._title, self._executed_steps)
@@ -212,6 +327,25 @@ class ManulRunner:
         _log(f"Hunt saved → {abs_path}")
         return {"ok": True, "data": {"saved_path": abs_path}}
 
+    async def _handle_scan_page(self, _params: dict[str, Any]) -> dict[str, Any]:
+        if self._session is None:
+            return {"ok": False, "error": "No active browser session. Use NAVIGATE first."}
+        try:
+            raw = await self._session.page.evaluate(_SCAN_PAGE_JS)  # type: ignore[union-attr]
+            elements: list[dict[str, Any]] = json.loads(raw)
+            return {"ok": True, "data": {"elements": elements, "count": len(elements)}}
+        except Exception as exc:  # noqa: BLE001
+            return {"ok": False, "error": str(exc)}
+
+    async def _handle_read_page_text(self, _params: dict[str, Any]) -> dict[str, Any]:
+        if self._session is None:
+            return {"ok": False, "error": "No active browser session. Use NAVIGATE first."}
+        try:
+            text: str = await self._session.page.evaluate("document.body.innerText")  # type: ignore[union-attr]
+            return {"ok": True, "data": {"text": text}}
+        except Exception as exc:  # noqa: BLE001
+            return {"ok": False, "error": str(exc)}
+
     async def _handle_reset(self, params: dict[str, Any]) -> dict[str, Any]:
         self._executed_steps.clear()
         self._context = params.get("context") or "Manul automation"
@@ -225,12 +359,14 @@ class ManulRunner:
     # ── dispatch ───────────────────────────────────────────────────────────────
 
     _HANDLERS = {
-        "run_steps":    "_handle_run_steps",
-        "get_state":    "_handle_get_state",
-        "propose_hunt": "_handle_propose_hunt",
-        "save_hunt":    "_handle_save_hunt",
-        "reset":        "_handle_reset",
-        "shutdown":     "_handle_shutdown",
+        "run_steps":      "_handle_run_steps",
+        "get_state":      "_handle_get_state",
+        "propose_hunt":   "_handle_propose_hunt",
+        "save_hunt":      "_handle_save_hunt",
+        "scan_page":      "_handle_scan_page",
+        "read_page_text": "_handle_read_page_text",
+        "reset":          "_handle_reset",
+        "shutdown":       "_handle_shutdown",
     }
 
     async def _process(self, msg: dict[str, Any]) -> None:

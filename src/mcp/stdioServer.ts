@@ -242,6 +242,36 @@ function createTools(): ToolDefinition[] {
       },
     },
     {
+      name: 'manul_scan_page',
+      description:
+        'Scan the currently open browser page and return all interactive elements (inputs, buttons, selects, checkboxes, radios, links). ' +
+        'Use this after NAVIGATE to discover exact element identifiers before deciding the next step.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      },
+      handler: async () => {
+        const response = await pythonRunner.scanPage();
+        return createExecutionResult('Scanned page elements.', { response });
+      },
+    },
+    {
+      name: 'manul_read_page_text',
+      description:
+        'Return all visible text content from the currently open browser page (document.body.innerText). ' +
+        'Use this to read prices, labels, headings, or any static text that does not appear in manul_scan_page.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      },
+      handler: async () => {
+        const response = await pythonRunner.readPageText();
+        return createExecutionResult('Read page text content.', { response });
+      },
+    },
+    {
       name: 'manul_preview_goal',
       description: 'Preview how a natural-language goal would be split and normalized into Manul DSL without running it.',
       inputSchema: {
