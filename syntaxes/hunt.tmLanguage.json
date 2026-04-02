@@ -1,0 +1,111 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Hunt",
+  "scopeName": "source.hunt",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#metadata"
+    },
+    {
+      "include": "#hooks"
+    },
+    {
+      "include": "#steps"
+    },
+    {
+      "include": "#commands"
+    },
+    {
+      "include": "#qualifiers"
+    },
+    {
+      "include": "#variables"
+    },
+    {
+      "include": "#strings"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.number-sign.hunt",
+          "match": "^\\s*#.*$"
+        }
+      ]
+    },
+    "metadata": {
+      "patterns": [
+        {
+          "name": "keyword.control.metadata.hunt",
+          "match": "^@(context|title|blueprint|tags|var|script|data|schedule):"
+        }
+      ]
+    },
+    "hooks": {
+      "patterns": [
+        {
+          "name": "entity.name.section.hunt",
+          "match": "^\\[(SETUP|END SETUP|TEARDOWN|END TEARDOWN)\\]$"
+        }
+      ]
+    },
+    "steps": {
+      "patterns": [
+        {
+          "name": "entity.name.section.step.hunt",
+          "match": "^STEP\\s+\\d*\\s*:"
+        },
+        {
+          "name": "keyword.control.done.hunt",
+          "match": "^DONE\\.$"
+        }
+      ]
+    },
+    "commands": {
+      "patterns": [
+        {
+          "name": "keyword.control.command.hunt",
+          "match": "\\b(NAVIGATE|OPEN APP|WAIT FOR RESPONSE|WAIT|EXTRACT|VERIFY SOFTLY|VERIFY VISUAL|VERIFY|PRESS ENTER|PRESS|RIGHT CLICK|UPLOAD|MOCK|SCAN PAGE|CALL PYTHON|SET|DEBUG VARS|DEBUG|PAUSE|SCROLL DOWN|DOUBLE CLICK|HOVER)\\b"
+        },
+        {
+          "name": "keyword.other.command.hunt",
+          "match": "\\b(Click|Fill|Type|Select|Check|Uncheck|Drag|Wait)\\b"
+        }
+      ]
+    },
+    "qualifiers": {
+      "patterns": [
+        {
+          "name": "storage.modifier.qualifier.hunt",
+          "match": "\\b(NEAR|ON HEADER|ON FOOTER|INSIDE)\\b"
+        }
+      ]
+    },
+    "variables": {
+      "patterns": [
+        {
+          "name": "variable.other.manul.hunt",
+          "match": "\\{[A-Za-z_][A-Za-z0-9_]*\\}"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.single.hunt",
+          "begin": "'",
+          "end": "'"
+        },
+        {
+          "name": "string.quoted.double.hunt",
+          "begin": "\"",
+          "end": "\""
+        }
+      ]
+    }
+  }
+}
