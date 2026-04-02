@@ -90,8 +90,14 @@ Available settings:
 	Request timeout in milliseconds. Default: 60000
 - manul.logNormalizedDsl
 	When enabled, the output channel logs the normalized DSL for auto-corrected input.
+- manul.pythonPath
+	Python executable used by the bundled runner. Leave it as python3 to let the bridge auto-discover a workspace-local .venv or venv before falling back to the system interpreter.
+- manul.headless
+	Runs the browser session headlessly when enabled.
 - manul.mcpServerLabel
 	Label shown in the VS Code `MCP Servers` view for the ManulMcpServer bridge.
+
+When the MCP server is launched by the extension provider, it forwards the detected workspace path and configured Python path into the bridge process so local virtual environments are resolved consistently.
 
 ## Natural Language Normalization
 

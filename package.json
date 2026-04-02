@@ -126,6 +126,16 @@
           "default": true,
           "description": "Log normalized DSL when a natural-language step is auto-corrected before execution."
         },
+        "manul.pythonPath": {
+          "type": "string",
+          "default": "python3",
+          "description": "Python executable path used by the bundled Manul runner. Leave as python3 to auto-discover a workspace-local .venv first."
+        },
+        "manul.headless": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run the Manul browser session in headless mode."
+        },
         "manul.mcpServerLabel": {
           "type": "string",
           "default": "ManulMcpServer",

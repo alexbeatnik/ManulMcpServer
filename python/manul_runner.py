@@ -105,7 +105,7 @@ class ManulRunner:
             return
         self._headless = headless
         _log(f"Opening browser (headless={headless}) …")
-        self._session = ManulSession(headless=headless)
+        self._session = ManulSession(headless=headless, disable_cache=True)
         await self._session.__aenter__()
         _log("Browser ready.")
 
