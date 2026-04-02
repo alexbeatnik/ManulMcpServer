@@ -52,6 +52,7 @@ const pythonRunner = new PythonRunner(
     timeoutMs: runtimeSettings.requestTimeoutMs,
     headless: runtimeSettings.headless,
     workspacePath: runtimeSettings.workspacePath,
+    extensionPath: runtimeSettings.extensionPath,
   },
   logger,
 );

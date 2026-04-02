@@ -30,19 +30,22 @@ const VENV_CANDIDATES = [
  *   3. venv/virtualenv found relative to CWD as a fallback
  *   4. Fall back to "python3" on PATH
  */
-function resolvePython(configuredPath: string, workspacePath: string, logger: ManulLogger): string {
+function resolvePython(configuredPath: string, workspacePath: string, extensionPath: string, logger: ManulLogger): string {
   // Explicit non-default path set via MANUL_PYTHON_PATH — use it as-is.
   if (configuredPath && configuredPath !== 'python3' && configuredPath !== 'python') {
     return configuredPath;
   }
 
-  // Search roots: explicit workspace path first, then CWD as fallback.
+  // Search roots: explicit workspace path first, then extension path, then CWD as fallback.
   const searchRoots: string[] = [];
   if (workspacePath) {
     searchRoots.push(workspacePath);
   }
+  if (extensionPath && extensionPath !== workspacePath) {
+    searchRoots.push(extensionPath);
+  }
   const cwd = process.cwd();
-  if (!workspacePath || path.resolve(cwd) !== path.resolve(workspacePath)) {
+  if (!searchRoots.some((r) => path.resolve(r) === path.resolve(cwd))) {
     searchRoots.push(cwd);
   }
 
@@ -77,6 +80,7 @@ export interface PythonRunnerOptions {
   readonly timeoutMs: number;
   readonly headless: boolean;
   readonly workspacePath: string;
+  readonly extensionPath: string;
 }
 
 export class PythonRunner {
@@ -92,7 +96,7 @@ export class PythonRunner {
     private readonly options: PythonRunnerOptions,
     private readonly logger: ManulLogger,
   ) {
-    this.resolvedPythonPath = resolvePython(options.pythonPath, options.workspacePath, logger);
+    this.resolvedPythonPath = resolvePython(options.pythonPath, options.workspacePath, options.extensionPath, logger);
   }
 
   private readonly resolvedPythonPath: string;

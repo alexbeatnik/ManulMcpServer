@@ -12,6 +12,7 @@ export interface ManulExtensionSettings {
   readonly pythonPath: string;
   readonly headless: boolean;
   readonly workspacePath: string;
+  readonly extensionPath: string;
 }
 
 export async function getExtensionSettings(
@@ -30,6 +31,7 @@ export async function getExtensionSettings(
     pythonPath: configuration.get<string>('pythonPath', 'python3').trim() || 'python3',
     headless: configuration.get<boolean>('headless', false),
     workspacePath: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '',
+    extensionPath: context.extensionPath,
   };
 }
 

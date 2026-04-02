@@ -12,6 +12,7 @@ export function getRuntimeSettingsFromEnv(env: NodeJS.ProcessEnv = process.env):
     pythonPath: (env.MANUL_PYTHON_PATH ?? '').trim() || 'python3',
     headless: normalizeBoolean(env.MANUL_HEADLESS, false),
     workspacePath: (env.MANUL_WORKSPACE_PATH ?? '').trim(),
+    extensionPath: (env.MANUL_EXTENSION_PATH ?? '').trim(),
   };
 }
 

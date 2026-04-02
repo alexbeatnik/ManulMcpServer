@@ -43,6 +43,7 @@ async function createServerDefinition(context: vscode.ExtensionContext): Promise
       MANUL_PYTHON_PATH: settings.pythonPath,
       MANUL_HEADLESS: String(settings.headless),
       MANUL_WORKSPACE_PATH: settings.workspacePath,
+      MANUL_EXTENSION_PATH: context.extensionPath,
       MANUL_MCP_LABEL: label,
     },
     '0.0.1',
