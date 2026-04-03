@@ -21,6 +21,7 @@ async function main(): Promise<void> {
     logNormalizedDsl: true,
     pythonPath: 'python3',
     headless: false,
+    workspacePath: '',
     label: 'ManulMcpServer',
     extensionPath: extensionRoot,
   });

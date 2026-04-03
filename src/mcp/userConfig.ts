@@ -19,6 +19,7 @@ export interface ManagedMcpServerOptions {
   readonly logNormalizedDsl: boolean;
   readonly pythonPath: string;
   readonly headless: boolean;
+  readonly workspacePath: string;
   readonly label: string;
   readonly extensionPath: string;
 }
@@ -144,6 +145,7 @@ function createManagedServerDefinition(
       MANUL_REQUEST_TIMEOUT_MS: String(options.requestTimeoutMs),
       MANUL_LOG_NORMALIZED_DSL: String(options.logNormalizedDsl),
       MANUL_PYTHON_PATH: options.pythonPath,
+      MANUL_WORKSPACE_PATH: options.workspacePath,
       MANUL_EXTENSION_PATH: options.extensionPath,
       MANUL_MCP_LABEL: options.label,
     },
