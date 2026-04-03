@@ -1,23 +1,61 @@
 # ManulMcpServer
 
-[![Status: Alpha](https://img.shields.io/badge/status-alpha-d97706)](#)
+[![PyPI](https://img.shields.io/pypi/v/manul-engine?label=PyPI&logo=pypi)](https://pypi.org/project/manul-engine/)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/manul-engine?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/manul-engine)
+[![Manul Engine Extension](https://img.shields.io/visual-studio-marketplace/v/manul-engine.manul-engine?label=Manul%20Engine%20Extension&logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=manul-engine.manul-engine)
+[![MCP Server](https://img.shields.io/visual-studio-marketplace/v/manul-engine.manul-mcp-server?label=MCP%20Server&logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=manul-engine.manul-mcp-server)
+[![Status: Alpha](https://img.shields.io/badge/status-alpha-d97706)](#status)
 
 VS Code extension that turns [ManulEngine](https://github.com/alexbeatnik/ManulEngine) into a native MCP server available directly in GitHub Copilot chat. Write `.hunt` automation scripts, run them from the editor, or invoke them through Copilot using natural language.
+
+## Status
 
 > **Alpha.** Developed alongside ManulEngine — both projects are in active development. API and file formats are subject to change.
 
 ---
 
-## ManulEngine
+## Installation
 
-This extension requires **ManulEngine** — the deterministic web and desktop automation runtime that powers the `.hunt` DSL.
+1. Install the `.vsix` file:
 
-| | |
-|---|---|
-| PyPI | [![PyPI](https://img.shields.io/pypi/v/manul-engine?label=PyPI&logo=pypi)](https://pypi.org/project/manul-engine/) |
-| VS Code Marketplace | [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/manul-engine.manul-engine?label=VS%20Code%20Marketplace&logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=manul-engine.manul-engine) |
-| GitHub | [alexbeatnik/ManulEngine](https://github.com/alexbeatnik/ManulEngine) |
-| Status | Alpha — battle-tested on real-world DOMs, APIs may evolve |
+```bash
+code --install-extension manul-mcp-server-0.0.2.vsix
+```
+
+2. Install the runtime dependencies:
+
+```bash
+pip install manul-engine==0.0.9.19
+playwright install
+```
+
+3. If you want the MCP runner to use a workspace-local `.venv`, open that folder in VS Code and leave `manul.pythonPath` at `python3`, or point `manul.pythonPath` at the exact interpreter you want.
+
+4. **Reload Window** (Ctrl+Shift+P → `Developer: Reload Window`).
+
+After reload, `ManulMcpServer` appears in the **MCP Servers** panel and Copilot chat gains the Manul tools automatically.
+The extension also syncs its user-scope `ManulMcpServer` entry in `User/mcp.json` during install and activation, and removes that entry on uninstall. That managed entry uses `node -e` bootstrap logic to resolve the newest installed extension directory automatically, so upgrades do not leave stale versioned paths behind.
+
+---
+
+## Requirements
+
+- VS Code 1.110 or newer
+- `node` available on `PATH` (the managed user-scope MCP entry launches the bridge with `node -e`)
+- Python 3.10+ with [ManulEngine](https://pypi.org/project/manul-engine/) installed
+
+---
+
+## First Run Checklist
+
+For a new machine, the extension is not fully self-contained. The `mcp.json` wiring is automatic now, but the runtime dependencies are still external:
+
+1. Install the extension.
+2. Install Python 3.10+.
+3. Install `manul-engine==0.0.9.19` into the Python environment you want the server to use.
+4. Run `playwright install`.
+5. Open the target workspace if you expect workspace-local `.venv` auto-detection.
+6. Reload VS Code.
 
 ---
 
@@ -30,52 +68,7 @@ This extension requires **ManulEngine** — the deterministic web and desktop au
 
 ---
 
-## Requirements
-
-- VS Code 1.110 or newer
-- Python 3.10+ with [ManulEngine](https://pypi.org/project/manul-engine/) installed:
-
-```bash
-pip install manul-engine
-playwright install
-```
-
-A workspace-local `.venv` is automatically detected and used if present.
-
----
-
-## Installation
-
-Install the `.vsix` file:
-
-```bash
-code --install-extension manul-mcp-server-0.0.1.vsix
-```
-
-Then **Reload Window** (Ctrl+Shift+P → `Developer: Reload Window`).
-
-After reload, `ManulMcpServer` appears in the **MCP Servers** panel and Copilot chat gains the Manul tools automatically.
-
----
-
-## MCP Tools Available in Copilot Chat
-
-| Tool | What it does |
-|------|-------------|
-| `manul_run_step` | Run a single DSL step or natural-language action in the browser |
-| `manul_run_goal` | Convert a natural-language goal into steps and execute them |
-| `manul_run_hunt` | Run a full `.hunt` document passed as text |
-| `manul_run_hunt_file` | Run a `.hunt` file from disk |
-| `manul_validate_hunt` | Validate a `.hunt` document without running it |
-| `manul_normalize_step` | Preview how a step will be normalized to DSL |
-| `manul_get_state` | Get current browser and session state |
-| `manul_preview_goal` | Preview goal-to-DSL conversion without execution |
-| `manul_scan_page` | List all interactive elements on the current page |
-| `manul_save_hunt` | Save a `.hunt` file to disk |
-
----
-
-## Hunt File Quick Start
+## Quick Start
 
 Create a file with the `.hunt` extension and write your automation:
 
@@ -119,6 +112,49 @@ Open **Settings** (Ctrl+,) and search for `manul`:
 
 ---
 
+## MCP Tools Available in Copilot Chat
+
+| Tool | What it does |
+|------|-------------|
+| `manul_run_step` | Run a single DSL step or natural-language action in the browser |
+| `manul_run_goal` | Convert a natural-language goal into steps and execute them |
+| `manul_run_hunt` | Run a full `.hunt` document passed as text |
+| `manul_run_hunt_file` | Run a `.hunt` file from disk |
+| `manul_validate_hunt` | Validate a `.hunt` document without running it |
+| `manul_normalize_step` | Preview how a step will be normalized to DSL |
+| `manul_get_state` | Get current browser and session state |
+| `manul_preview_goal` | Preview goal-to-DSL conversion without execution |
+| `manul_scan_page` | List all interactive elements on the current page |
+| `manul_save_hunt` | Save a `.hunt` file to disk |
+
+---
+
+## Troubleshooting
+
+- `manul-engine not installed: No module named 'manul_engine'`
+    Install `manul-engine==0.0.9.19` into the Python interpreter selected by `manul.pythonPath`, or open the workspace so the extension can discover the local `.venv`.
+- `node: command not found`
+    The managed user-scope MCP entry launches the bridge with `node`, so Node.js must be available on `PATH`.
+- The MCP server starts but does not pick up the workspace `.venv`
+    Open the project folder in VS Code or set `manul.pythonPath` explicitly to the desired interpreter.
+- The editor **Run Step** / **Run Hunt File** commands fail while MCP chat tools work
+    That is expected when `manul serve` is not running. Editor commands use the HTTP API; MCP tools use the bundled Python runner.
+
+---
+
+## ManulEngine
+
+This extension requires **ManulEngine** — the deterministic web and desktop automation runtime that powers the `.hunt` DSL.
+
+| | |
+|---|---|
+| PyPI | [![PyPI](https://img.shields.io/pypi/v/manul-engine?label=PyPI&logo=pypi)](https://pypi.org/project/manul-engine/) |
+| Manul Engine Extension | [![Manul Engine Extension](https://img.shields.io/visual-studio-marketplace/v/manul-engine.manul-engine?label=Manul%20Engine%20Extension&logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=manul-engine.manul-engine) |
+| GitHub | [alexbeatnik/ManulEngine](https://github.com/alexbeatnik/ManulEngine) |
+| Status | Alpha — battle-tested on real-world DOMs, APIs may evolve |
+
+---
+
 ## Hunt File Format
 
 ```
@@ -144,7 +180,9 @@ DONE.
 
 ## What's New
 
-- Initial release: MCP server integration, `.hunt` language support, Python runner bridge, `manul_scan_page` and `manul_save_hunt` tools.
+- Managed user-scope `mcp.json` sync on install, activation, settings change, and uninstall.
+- User-scope MCP bootstrap now resolves the latest installed extension directory via `node -e` instead of a stale versioned script path.
+- Documentation updated to reflect external runtime requirements and workspace `.venv` behavior.
 
 ## License
 

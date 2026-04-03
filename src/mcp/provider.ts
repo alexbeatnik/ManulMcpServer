@@ -1,7 +1,7 @@
-import * as path from 'node:path';
 import * as vscode from 'vscode';
 
 import { getExtensionSettings } from '../config/settings';
+import { createDirectMcpBridgeLaunchSpec } from './launcher';
 
 const MCP_PROVIDER_ID = 'manul.mcp-servers';
 
@@ -14,7 +14,7 @@ export function registerMcpServerProvider(context: vscode.ExtensionContext): vsc
     resolveMcpServerDefinition: async () => createServerDefinition(context),
   };
 
-  return vscode.Disposable.from(
+  const registration = vscode.Disposable.from(
     didChangeEmitter,
     vscode.lm.registerMcpServerDefinitionProvider(MCP_PROVIDER_ID, provider),
     vscode.workspace.onDidChangeConfiguration((event) => {
@@ -23,18 +23,22 @@ export function registerMcpServerProvider(context: vscode.ExtensionContext): vsc
       }
     }),
   );
+
+  setTimeout(() => didChangeEmitter.fire(), 0);
+
+  return registration;
 }
 
 async function createServerDefinition(context: vscode.ExtensionContext): Promise<vscode.McpStdioServerDefinition> {
   const settings = await getExtensionSettings(context);
   const configuration = vscode.workspace.getConfiguration('manul');
   const label = configuration.get<string>('mcpServerLabel', 'ManulMcpServer').trim() || 'ManulMcpServer';
-  const bridgePath = path.join(context.extensionPath, 'out', 'mcp', 'stdioServer.js');
+  const launchSpec = createDirectMcpBridgeLaunchSpec(context.extensionPath);
 
   return new vscode.McpStdioServerDefinition(
     label,
-    process.execPath,
-    [bridgePath],
+    launchSpec.command,
+    [...launchSpec.args],
     {
       MANUL_API_BASE_URL: settings.apiBaseUrl,
       MANUL_SESSION_ID: settings.sessionId,
@@ -46,6 +50,6 @@ async function createServerDefinition(context: vscode.ExtensionContext): Promise
       MANUL_EXTENSION_PATH: context.extensionPath,
       MANUL_MCP_LABEL: label,
     },
-    '0.0.1',
+    '0.0.2',
   );
 }

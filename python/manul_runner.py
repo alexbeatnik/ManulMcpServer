@@ -35,6 +35,13 @@ import sys
 import textwrap
 from typing import Any
 
+# ── Force UTF-8 on Windows (stdout/stderr may default to charmap) ─────────────
+if sys.platform == "win32":
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 
 # ── import guard ──────────────────────────────────────────────────────────────
 

@@ -198,7 +198,12 @@ export class PythonRunner {
       const child = spawn(this.resolvedPythonPath, [this.options.runnerScriptPath], {
         stdio: ['pipe', 'pipe', 'pipe'],
         cwd: this.options.workspacePath || process.cwd(),
-        env: { ...process.env, MANUL_WORKSPACE_PATH: this.options.workspacePath || process.cwd() },
+        env: {
+          ...process.env,
+          PYTHONIOENCODING: 'utf-8',
+          PYTHONUTF8: '1',
+          MANUL_WORKSPACE_PATH: this.options.workspacePath || process.cwd(),
+        },
       });
 
       child.stdout!.setEncoding('utf8');

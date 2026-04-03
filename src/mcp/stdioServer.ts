@@ -21,7 +21,7 @@ interface ToolDefinition {
 type McpToolResult = CallToolResult;
 type McpTaskResult = CreateTaskResult;
 
-const SERVER_VERSION = '0.0.1';
+const SERVER_VERSION = '0.0.2';
 const label = getMcpServerLabelFromEnv();
 
 const logger = {

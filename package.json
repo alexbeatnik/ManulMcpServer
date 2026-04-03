@@ -2,8 +2,8 @@
   "name": "manul-mcp-server",
   "displayName": "ManulMcpServer",
   "description": "VS Code extension that publishes ManulEngine as an MCP server and supports .hunt authoring.",
-  "version": "0.0.1",
-  "publisher": "manul",
+  "version": "0.0.2",
+  "publisher": "manul-engine",
   "license": "Apache-2.0",
   "engines": {
     "vscode": "^1.110.0"
@@ -24,8 +24,9 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/manul/manul-vscode"
+    "url": "https://github.com/alexbeatnik/ManulMcpServer"
   },
+  "icon": "logo.png",
   "main": "./out/extension.js",
   "activationEvents": [
     "onStartupFinished"
@@ -148,7 +149,9 @@
     "build": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "check": "tsc -p ./ --noEmit",
+    "vscode:install": "node ./out/lifecycle/install.js",
     "vscode:prepublish": "npm run build",
+    "vscode:uninstall": "node ./out/lifecycle/uninstall.js",
     "package": "vsce package"
   },
   "dependencies": {

@@ -21,18 +21,25 @@ VS Code Extension Host
     │   ├── hover.ts           — hover documentation
     │   └── languageConfig.ts  — language feature registration
     ├── mcp/
+    │   ├── launcher.ts        — launch specs for direct provider mode vs managed user mcp.json bootstrap
     │   ├── server.ts          — ManulMcpServer facade (wraps PythonRunner)
     │   ├── stdioServer.ts     — MCP stdio bridge (tool definitions + handlers)
-    │   └── provider.ts        — VS Code MCP server definition provider
+    │   ├── provider.ts        — VS Code MCP server definition provider
+    │   └── userConfig.ts      — reads, writes, and removes the managed user-scope mcp.json entry
     ├── services/
     │   ├── pythonRunner.ts    — spawns manul_runner.py, JSON-line protocol
     │   ├── apiClient.ts       — (legacy) HTTP client for standalone API mode
     │   ├── logger.ts          — ManulLogger interface
     │   ├── output.ts          — VS Code output channel wrapper
-    │   └── statusBar.ts       — status bar item
+    │   ├── statusBar.ts       — status bar item
+    │   └── userMcpSync.ts     — activation-time sync for the managed user-scope mcp.json entry
     └── types/
         ├── api.ts             — ApiResult, ManulEngineState
         └── contract.ts        — DSL contract types
+
+src/lifecycle/
+├── install.ts                — `vscode:install` hook that creates or updates the managed user mcp.json entry
+└── uninstall.ts              — `vscode:uninstall` hook that removes the managed user mcp.json entry
 
 python/
 └── manul_runner.py            — async Python process bridging JSON-line ↔ ManulEngine API
@@ -40,12 +47,15 @@ python/
 
 ## How the MCP Bridge Works
 
+There are now two launch paths that both end up in the same bridge process:
+
 1. VS Code activates the extension on startup (`onStartupFinished`)
-2. `provider.ts` registers a `McpServerDefinitionProvider` that VS Code queries for MCP server definitions
-3. VS Code launches `out/mcp/stdioServer.js` as a stdio child process
-4. `stdioServer.ts` creates a `PythonRunner` which spawns `python/manul_runner.py`
-5. MCP tool calls flow: **Copilot → stdioServer.ts → PythonRunner (JSON-line) → manul_runner.py → ManulEngine**
-6. `manul_runner.py` maintains a persistent `ManulSession` (Playwright browser) across calls
+2. `provider.ts` registers a `McpServerDefinitionProvider` that VS Code queries for MCP server definitions inside the extension host
+3. In parallel, the extension syncs a managed user-scope `User/mcp.json` entry on install, activation, and `manul.*` setting changes
+4. The provider path launches `out/mcp/stdioServer.js` directly; the managed `mcp.json` path launches `node -e ...` bootstrap that finds the newest installed extension directory and then requires the same `stdioServer.js`
+5. `stdioServer.ts` creates a `PythonRunner` which spawns `python/manul_runner.py`
+6. MCP tool calls flow: **Copilot → stdioServer.ts → PythonRunner (JSON-line) → manul_runner.py → ManulEngine**
+7. `manul_runner.py` maintains a persistent `ManulSession` (Playwright browser) across calls
 
 ```
 Copilot Chat
@@ -95,8 +105,14 @@ cd ../ManulMcpServer
 # Optional: create workspace venv (auto-detected by PythonRunner)
 python3 -m venv .venv
 source .venv/bin/activate
-pip install manul-engine
+pip install manul-engine==0.0.9.19
+playwright install
 ```
+
+Notes:
+
+- The managed user-scope MCP entry runs `node -e ...`, so `node` must be on `PATH`.
+- Workspace `.venv` discovery is most reliable when the workspace folder is open in VS Code or `manul.pythonPath` is set explicitly.
 
 ## Development Workflow
 
@@ -114,7 +130,11 @@ npm run watch
 npm run package
 
 # Install into VS Code
-code --install-extension manul-mcp-server-0.0.1.vsix --force
+code --install-extension manul-mcp-server-0.0.2.vsix --force
+
+# Lifecycle hooks used by installed builds
+npm run vscode:install
+npm run vscode:uninstall
 ```
 
 After installing, run **Developer: Reload Window** in VS Code.
@@ -160,10 +180,28 @@ When VS Code launches the MCP bridge (`stdioServer.js`), it passes:
 | Env var | Source | Used for |
 |---------|--------|----------|
 | `MANUL_PYTHON_PATH` | `manul.pythonPath` setting | Python executable resolution |
-| `MANUL_WORKSPACE_PATH` | VS Code workspace folder | `cwd` for Python runner, venv detection |
+| `MANUL_WORKSPACE_PATH` | VS Code workspace folder when available | `cwd` for Python runner, venv detection |
 | `MANUL_HEADLESS` | `manul.headless` setting | Playwright headless flag |
 | `MANUL_REQUEST_TIMEOUT_MS` | `manul.requestTimeoutMs` setting | JSON-line call timeout |
 | `MANUL_MCP_LABEL` | `manul.mcpServerLabel` setting | Display label |
+
+## Managed User mcp.json Entry
+
+The extension now manages its own user-scope `mcp.json` entry:
+
+- Created or updated by `vscode:install`
+- Refreshed on extension activation and when `manul.*` settings change
+- Removed by `vscode:uninstall`
+- Written under `User/mcp.json` for VS Code, VS Code Insiders, VSCodium, Cursor, and OSS builds based on the install path
+
+Important implementation details:
+
+- The managed entry uses `node -e` bootstrap instead of a direct versioned script path, so it always resolves the newest installed `manul-engine.manul-mcp-server-*` folder.
+- The managed entry intentionally does **not** write `cwd: "${workspaceFolder}"` or `MANUL_WORKSPACE_PATH` because user-scope MCP config can be started outside any folder context, and `${workspaceFolder}` breaks there.
+- Because of that, workspace-local `.venv` discovery depends on real workspace context from VS Code or on an explicit `manul.pythonPath` setting.
+- The managed writer strips stale fields like old `cwd`, `command`, `args`, and `type` from an existing `ManulMcpServer` entry before rewriting it.
+
+If you create a manual user-scope `mcp.json` entry yourself, prefer matching the managed bootstrap pattern rather than hardcoding a versioned path to `out/mcp/stdioServer.js`.
 
 ## Key Files to Know
 
@@ -172,6 +210,9 @@ When VS Code launches the MCP bridge (`stdioServer.js`), it passes:
 | `python/manul_runner.py` | The engine bridge — most runtime behaviour lives here |
 | `src/mcp/stdioServer.ts` | All MCP tool definitions — add/modify tools here |
 | `src/services/pythonRunner.ts` | Process lifecycle and JSON-line protocol |
+| `src/mcp/launcher.ts` | Defines the direct launch path vs the managed `node -e` bootstrap path |
+| `src/mcp/userConfig.ts` | Owns managed `User/mcp.json` reads, writes, cleanup, and stale-field removal |
+| `src/services/userMcpSync.ts` | Syncs the managed user `mcp.json` entry at activation and settings changes |
 | `src/dsl/validator.ts` | All DSL validation patterns |
 | `src/dsl/builder.ts` | Natural language → DSL normalization rules |
 | `src/mcp/provider.ts` | How the extension registers with VS Code MCP |
@@ -182,3 +223,5 @@ When VS Code launches the MCP bridge (`stdioServer.js`), it passes:
 - Playwright browser is visible by default (`headless: false`) — set `manul.headless: true` in settings to suppress
 - After any step failure the browser is closed; the next call re-opens it automatically
 - `manul_runner.py` uses the ManulEngine Python API directly (not the HTTP endpoint), so no running API server is required
+- The extension manages MCP wiring automatically, but it does not install Python, `manul-engine`, Playwright browsers, or Node.js for the user
+- If the user starts the server without opening the target folder and without setting `manul.pythonPath`, workspace-local `.venv` auto-detection may not resolve the intended interpreter

@@ -11,6 +11,20 @@ When using ManulMcpServer tools (`manul_run_step`, `manul_run_hunt_file`, etc.) 
    - Ask the user: *"Should I save this as a hunt file so it can be replayed later?"*
    - If yes, save with `manul_save_hunt` to `tests/<descriptive_name>.hunt`
 
+## Environment Rules
+
+- Treat `manul-engine not installed`, missing Python, missing Playwright browsers, or missing `node` as environment/setup failures first, not as DSL failures.
+- If a Manul tool fails before the browser opens, check the active Python environment and whether `manul-engine` is installed there before retrying browser steps.
+- Do not assume workspace-local `.venv` detection will work if no folder is open. When setup matters, mention that opening the workspace or setting `manul.pythonPath` explicitly is more reliable.
+- Do not recommend `${workspaceFolder}` in a user-scope `mcp.json` entry. It breaks when VS Code starts the MCP server outside a folder context.
+
+## Tool Selection Rules
+
+- `manul_run_step` is for one step at a time. Do not send multi-line step batches through it.
+- For flows with multiple actions and `VERIFY` checks, prefer `manul_run_hunt` or `manul_run_goal`.
+- After `NAVIGATE` and after state-changing clicks, prefer `manul_scan_page` when you need the exact current identifiers before choosing the next step.
+- If a `VERIFY that 'text' is present` step fails but `manul_scan_page` shows a nearby stable identifier, adapt the verify target to the actual page text instead of reporting the whole flow as broken.
+
 ## Hunt File Format Rules
 
 - `@context:` and `@title:` must be flush-left (no leading spaces)
