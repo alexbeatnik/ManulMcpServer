@@ -39,14 +39,15 @@ This extension requires **ManulEngine** — the deterministic web and desktop au
 ## Requirements
 
 - VS Code 1.110 or newer
+- `node` available on `PATH` (the managed user-scope MCP entry launches the bridge with `node -e`)
 - Python 3.10+ with [ManulEngine](https://pypi.org/project/manul-engine/) installed:
 
 ```bash
-pip install manul-engine
+pip install manul-engine==0.0.9.19
 playwright install
 ```
 
-A workspace-local `.venv` is automatically detected and used if present.
+If you want the MCP runner to use a workspace-local `.venv`, open the folder in VS Code and leave `manul.pythonPath` at `python3`, or point `manul.pythonPath` at the exact interpreter you want.
 
 ---
 
@@ -61,7 +62,18 @@ code --install-extension manul-mcp-server-0.0.2.vsix
 Then **Reload Window** (Ctrl+Shift+P → `Developer: Reload Window`).
 
 After reload, `ManulMcpServer` appears in the **MCP Servers** panel and Copilot chat gains the Manul tools automatically.
-The extension also syncs its user-scope `ManulMcpServer` entry in `User/mcp.json` during install and activation, and removes that entry on uninstall.
+The extension also syncs its user-scope `ManulMcpServer` entry in `User/mcp.json` during install and activation, and removes that entry on uninstall. That managed entry uses `node -e` bootstrap logic to resolve the newest installed extension directory automatically, so upgrades do not leave stale versioned paths behind.
+
+## First Run Checklist
+
+For a new machine, the extension is not fully self-contained. The `mcp.json` wiring is automatic now, but the runtime dependencies are still external:
+
+1. Install the extension.
+2. Install Python 3.10+.
+3. Install `manul-engine==0.0.9.19` into the Python environment you want the server to use.
+4. Run `playwright install`.
+5. Open the target workspace if you expect workspace-local `.venv` auto-detection.
+6. Reload VS Code.
 
 ---
 
@@ -126,6 +138,19 @@ Open **Settings** (Ctrl+,) and search for `manul`:
 
 ---
 
+## Troubleshooting
+
+- `manul-engine not installed: No module named 'manul_engine'`
+    Install `manul-engine==0.0.9.19` into the Python interpreter selected by `manul.pythonPath`, or open the workspace so the extension can discover the local `.venv`.
+- `node: command not found`
+    The managed user-scope MCP entry launches the bridge with `node`, so Node.js must be available on `PATH`.
+- The MCP server starts but does not pick up the workspace `.venv`
+    Open the project folder in VS Code or set `manul.pythonPath` explicitly to the desired interpreter.
+- The editor **Run Step** / **Run Hunt File** commands fail while MCP chat tools work
+    That is expected when `manul serve` is not running. Editor commands use the HTTP API; MCP tools use the bundled Python runner.
+
+---
+
 ## Hunt File Format
 
 ```
@@ -151,7 +176,9 @@ DONE.
 
 ## What's New
 
-- Initial release: MCP server integration, `.hunt` language support, Python runner bridge, `manul_scan_page` and `manul_save_hunt` tools.
+- Managed user-scope `mcp.json` sync on install, activation, settings change, and uninstall.
+- User-scope MCP bootstrap now resolves the latest installed extension directory via `node -e` instead of a stale versioned script path.
+- Documentation updated to reflect external runtime requirements and workspace `.venv` behavior.
 
 ## License
 
