@@ -50,6 +50,6 @@ async function createServerDefinition(context: vscode.ExtensionContext): Promise
       MANUL_EXTENSION_PATH: context.extensionPath,
       MANUL_MCP_LABEL: label,
     },
-    '0.0.2',
+    '0.0.3',
   );
 }

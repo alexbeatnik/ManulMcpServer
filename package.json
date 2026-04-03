@@ -2,7 +2,7 @@
   "name": "manul-mcp-server",
   "displayName": "ManulMcpServer",
   "description": "VS Code extension that publishes ManulEngine as an MCP server and supports .hunt authoring.",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "manul-engine",
   "license": "Apache-2.0",
   "engines": {
