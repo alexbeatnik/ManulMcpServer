@@ -149,7 +149,9 @@
     "build": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "check": "tsc -p ./ --noEmit",
+    "vscode:install": "node ./out/lifecycle/install.js",
     "vscode:prepublish": "npm run build",
+    "vscode:uninstall": "node ./out/lifecycle/uninstall.js",
     "package": "vsce package"
   },
   "dependencies": {

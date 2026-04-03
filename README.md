@@ -61,6 +61,7 @@ code --install-extension manul-mcp-server-0.0.2.vsix
 Then **Reload Window** (Ctrl+Shift+P → `Developer: Reload Window`).
 
 After reload, `ManulMcpServer` appears in the **MCP Servers** panel and Copilot chat gains the Manul tools automatically.
+The extension also syncs its user-scope `ManulMcpServer` entry in `User/mcp.json` during install and activation, and removes that entry on uninstall.
 
 ---
 

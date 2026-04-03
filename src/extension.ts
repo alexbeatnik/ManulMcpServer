@@ -12,6 +12,7 @@ import { ManulMcpServer } from './mcp/server';
 import { ManulApiClient } from './services/apiClient';
 import { ManulOutputChannel } from './services/output';
 import { ManulStatusBar } from './services/statusBar';
+import { registerUserMcpConfigSync } from './services/userMcpSync';
 
 export function activate(context: vscode.ExtensionContext): void {
   const output = new ManulOutputChannel();
@@ -23,6 +24,7 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     output,
     statusBar,
+    registerUserMcpConfigSync(context, output),
     registerLanguageConfiguration(),
     registerCompletionProvider(),
     registerHoverProvider(),

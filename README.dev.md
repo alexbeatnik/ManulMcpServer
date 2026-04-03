@@ -165,7 +165,7 @@ When VS Code launches the MCP bridge (`stdioServer.js`), it passes:
 | `MANUL_REQUEST_TIMEOUT_MS` | `manul.requestTimeoutMs` setting | JSON-line call timeout |
 | `MANUL_MCP_LABEL` | `manul.mcpServerLabel` setting | Display label |
 
-If you create a manual user-scope `mcp.json` entry, do not set `MANUL_WORKSPACE_PATH` to `${workspaceFolder}`. VS Code resolves that variable before the server starts, and it fails in contexts that are not folder-scoped. Leave the variable unset or use an absolute path if you need a fixed working directory.
+The extension now syncs its own user-scope `mcp.json` entry on install and activation, and removes that entry during uninstall. If you create a manual user-scope `mcp.json` entry yourself, do not set `MANUL_WORKSPACE_PATH` to `${workspaceFolder}`. VS Code resolves that variable before the server starts, and it fails in contexts that are not folder-scoped. Leave the variable unset or use an absolute path if you need a fixed working directory.
 
 ## Key Files to Know
 
