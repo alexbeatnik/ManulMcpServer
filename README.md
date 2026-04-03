@@ -21,7 +21,7 @@ This extension requires **ManulEngine** — the deterministic web and desktop au
 | | |
 |---|---|
 | PyPI | [![PyPI](https://img.shields.io/pypi/v/manul-engine?label=PyPI&logo=pypi)](https://pypi.org/project/manul-engine/) |
-| VS Code Marketplace | [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/manul-engine.manul-engine?label=VS%20Code%20Marketplace&logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=manul-engine.manul-engine) |
+| Manul Engine Extension | [![Manul Engine Extension](https://img.shields.io/visual-studio-marketplace/v/manul-engine.manul-engine?label=Manul%20Engine%20Extension&logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=manul-engine.manul-engine) |
 | GitHub | [alexbeatnik/ManulEngine](https://github.com/alexbeatnik/ManulEngine) |
 | Status | Alpha — battle-tested on real-world DOMs, APIs may evolve |
 

@@ -160,10 +160,12 @@ When VS Code launches the MCP bridge (`stdioServer.js`), it passes:
 | Env var | Source | Used for |
 |---------|--------|----------|
 | `MANUL_PYTHON_PATH` | `manul.pythonPath` setting | Python executable resolution |
-| `MANUL_WORKSPACE_PATH` | VS Code workspace folder | `cwd` for Python runner, venv detection |
+| `MANUL_WORKSPACE_PATH` | VS Code workspace folder when available | `cwd` for Python runner, venv detection |
 | `MANUL_HEADLESS` | `manul.headless` setting | Playwright headless flag |
 | `MANUL_REQUEST_TIMEOUT_MS` | `manul.requestTimeoutMs` setting | JSON-line call timeout |
 | `MANUL_MCP_LABEL` | `manul.mcpServerLabel` setting | Display label |
+
+If you create a manual user-scope `mcp.json` entry, do not set `MANUL_WORKSPACE_PATH` to `${workspaceFolder}`. VS Code resolves that variable before the server starts, and it fails in contexts that are not folder-scoped. Leave the variable unset or use an absolute path if you need a fixed working directory.
 
 ## Key Files to Know
 
