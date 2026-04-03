@@ -38,8 +38,9 @@ export async function upsertMcpServerAtPath(
   const root = existingContent ? parseConfigFile(filePath, existingContent) : createDefaultRoot();
   const nextRoot = buildNextRoot(root, options);
   const nextContent = stringifyConfig(nextRoot);
+  const normalizedExisting = existingContent ? stringifyConfig(parseConfigFile(filePath, existingContent)) : null;
 
-  if (existingContent === nextContent) {
+  if (normalizedExisting === nextContent) {
     return 'unchanged';
   }
 
@@ -104,6 +105,18 @@ function buildNextRoot(root: JsonObject, options: ManagedMcpServerOptions): Json
   };
 }
 
+const MANAGED_ENV_KEYS = new Set([
+  'MANUL_API_BASE_URL',
+  'MANUL_HEADLESS',
+  'MANUL_SESSION_ID',
+  'MANUL_REQUEST_TIMEOUT_MS',
+  'MANUL_LOG_NORMALIZED_DSL',
+  'MANUL_PYTHON_PATH',
+  'MANUL_EXTENSION_PATH',
+  'MANUL_MCP_LABEL',
+  'MANUL_WORKSPACE_PATH',
+]);
+
 function createManagedServerDefinition(
   options: ManagedMcpServerOptions,
   existingServer: JsonObject,
@@ -111,13 +124,20 @@ function createManagedServerDefinition(
 ): JsonObject {
   const { cwd: _cwd, command: _command, args: _args, env: _env, type: _type, ...restServer } = existingServer;
 
+  const passthroughEnv: JsonObject = {};
+  for (const [key, value] of Object.entries(existingEnv)) {
+    if (!MANAGED_ENV_KEYS.has(key) && !key.startsWith('MANUL_')) {
+      passthroughEnv[key] = value;
+    }
+  }
+
   return {
     ...restServer,
     type: 'stdio',
     command: options.command,
     args: [...options.args],
     env: {
-      ...existingEnv,
+      ...passthroughEnv,
       MANUL_API_BASE_URL: options.apiBaseUrl,
       MANUL_HEADLESS: String(options.headless),
       MANUL_SESSION_ID: options.sessionId,

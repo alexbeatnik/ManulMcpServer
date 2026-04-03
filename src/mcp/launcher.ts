@@ -57,7 +57,7 @@ function isProductInstallMarker(value: string): value is ProductInstallMarker {
 }
 
 function joinPath(...segments: readonly string[]): string {
-  return segments.join('/').replace(/\/+/gu, '/').replace(/\/+/gu, '/');
+  return segments.join('/').replace(/\/+/gu, '/');
 }
 
 function quote(value: string): string {
