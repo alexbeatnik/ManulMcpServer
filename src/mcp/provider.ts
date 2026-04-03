@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 import { getExtensionSettings } from '../config/settings';
-import { createMcpBridgeLaunchSpec } from './launcher';
+import { createDirectMcpBridgeLaunchSpec } from './launcher';
 
 const MCP_PROVIDER_ID = 'manul.mcp-servers';
 
@@ -33,7 +33,7 @@ async function createServerDefinition(context: vscode.ExtensionContext): Promise
   const settings = await getExtensionSettings(context);
   const configuration = vscode.workspace.getConfiguration('manul');
   const label = configuration.get<string>('mcpServerLabel', 'ManulMcpServer').trim() || 'ManulMcpServer';
-  const launchSpec = createMcpBridgeLaunchSpec(context.extensionPath);
+  const launchSpec = createDirectMcpBridgeLaunchSpec(context.extensionPath);
 
   return new vscode.McpStdioServerDefinition(
     label,

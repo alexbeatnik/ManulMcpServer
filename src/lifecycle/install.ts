@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 
-import { createMcpBridgeLaunchSpec } from '../mcp/launcher';
+import { createManagedMcpConfigLaunchSpec } from '../mcp/launcher';
 import { resolveUserMcpConfigPathFromExtensionRoot, upsertMcpServerAtPath } from '../mcp/userConfig';
 
 async function main(): Promise<void> {
@@ -11,7 +11,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  const launchSpec = createMcpBridgeLaunchSpec(extensionRoot);
+  const launchSpec = createManagedMcpConfigLaunchSpec(extensionRoot);
   const result = await upsertMcpServerAtPath(filePath, {
     command: launchSpec.command,
     args: launchSpec.args,

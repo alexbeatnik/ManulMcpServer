@@ -2,7 +2,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 
 import { getExtensionSettings } from '../config/settings';
-import { createMcpBridgeLaunchSpec } from '../mcp/launcher';
+import { createManagedMcpConfigLaunchSpec } from '../mcp/launcher';
 import { upsertMcpServerAtPath } from '../mcp/userConfig';
 import type { ManulLogger } from './logger';
 
@@ -16,7 +16,7 @@ export function registerUserMcpConfigSync(context: vscode.ExtensionContext, logg
       const label = configuration.get<string>('mcpServerLabel', 'ManulMcpServer').trim() || 'ManulMcpServer';
       const configuredSessionId = configuration.get<string>('sessionId', '').trim();
       const filePath = getUserMcpConfigPath(context);
-      const launchSpec = createMcpBridgeLaunchSpec(context.extensionPath);
+      const launchSpec = createManagedMcpConfigLaunchSpec(context.extensionPath);
       const result = await upsertMcpServerAtPath(filePath, {
         command: launchSpec.command,
         args: launchSpec.args,
