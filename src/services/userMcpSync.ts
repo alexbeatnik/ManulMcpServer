@@ -1,9 +1,8 @@
-import * as path from 'node:path';
 import * as vscode from 'vscode';
 
 import { getExtensionSettings } from '../config/settings';
 import { createManagedMcpConfigLaunchSpec } from '../mcp/launcher';
-import { upsertMcpServerAtPath } from '../mcp/userConfig';
+import { resolveUserMcpConfigPathFromExtensionRoot, upsertMcpServerAtPath } from '../mcp/userConfig';
 import type { ManulLogger } from './logger';
 
 const MANUL_CONFIGURATION_SECTION = 'manul';
@@ -15,7 +14,11 @@ export function registerUserMcpConfigSync(context: vscode.ExtensionContext, logg
       const configuration = vscode.workspace.getConfiguration(MANUL_CONFIGURATION_SECTION);
       const label = configuration.get<string>('mcpServerLabel', 'ManulMcpServer').trim() || 'ManulMcpServer';
       const configuredSessionId = configuration.get<string>('sessionId', '').trim();
-      const filePath = getUserMcpConfigPath(context);
+      const filePath = resolveUserMcpConfigPathFromExtensionRoot(context.extensionPath);
+      if (!filePath) {
+        logger.warn(`Could not resolve user mcp.json path for this VS Code build`);
+        return;
+      }
       const launchSpec = createManagedMcpConfigLaunchSpec(context.extensionPath);
       const result = await upsertMcpServerAtPath(filePath, {
         command: launchSpec.command,
@@ -45,11 +48,6 @@ export function registerUserMcpConfigSync(context: vscode.ExtensionContext, logg
       void sync('settings change');
     }
   });
-}
-
-function getUserMcpConfigPath(context: vscode.ExtensionContext): string {
-  const userDir = path.dirname(path.dirname(context.globalStorageUri.fsPath));
-  return path.join(userDir, 'mcp.json');
 }
 
 function toErrorMessage(error: unknown): string {
