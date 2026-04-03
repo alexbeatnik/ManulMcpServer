@@ -1,8 +1,14 @@
 # ManulMcpServer
 
-[![Status: Alpha](https://img.shields.io/badge/status-alpha-d97706)](#)
+[![PyPI](https://img.shields.io/pypi/v/manul-engine?label=PyPI&logo=pypi)](https://pypi.org/project/manul-engine/)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/manul-engine?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/manul-engine)
+[![Manul Engine Extension](https://img.shields.io/visual-studio-marketplace/v/manul-engine.manul-engine?label=Manul%20Engine%20Extension&logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=manul-engine.manul-engine)
+[![MCP Server](https://img.shields.io/visual-studio-marketplace/v/manul-engine.manul-mcp-server?label=MCP%20Server&logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=manul-engine.manul-mcp-server)
+[![Status: Alpha](https://img.shields.io/badge/status-alpha-d97706)](#status)
 
 VS Code extension that turns [ManulEngine](https://github.com/alexbeatnik/ManulEngine) into a native MCP server available directly in GitHub Copilot chat. Write `.hunt` automation scripts, run them from the editor, or invoke them through Copilot using natural language.
+
+## Status
 
 > **Alpha.** Developed alongside ManulEngine — both projects are in active development. API and file formats are subject to change.
 
@@ -49,7 +55,7 @@ A workspace-local `.venv` is automatically detected and used if present.
 Install the `.vsix` file:
 
 ```bash
-code --install-extension manul-mcp-server-0.0.1.vsix
+code --install-extension manul-mcp-server-0.0.2.vsix
 ```
 
 Then **Reload Window** (Ctrl+Shift+P → `Developer: Reload Window`).

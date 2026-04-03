@@ -114,7 +114,7 @@ npm run watch
 npm run package
 
 # Install into VS Code
-code --install-extension manul-mcp-server-0.0.1.vsix --force
+code --install-extension manul-mcp-server-0.0.2.vsix --force
 ```
 
 After installing, run **Developer: Reload Window** in VS Code.
