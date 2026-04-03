@@ -14,7 +14,7 @@ export function registerMcpServerProvider(context: vscode.ExtensionContext): vsc
     resolveMcpServerDefinition: async () => createServerDefinition(context),
   };
 
-  return vscode.Disposable.from(
+  const registration = vscode.Disposable.from(
     didChangeEmitter,
     vscode.lm.registerMcpServerDefinitionProvider(MCP_PROVIDER_ID, provider),
     vscode.workspace.onDidChangeConfiguration((event) => {
@@ -23,6 +23,10 @@ export function registerMcpServerProvider(context: vscode.ExtensionContext): vsc
       }
     }),
   );
+
+  setTimeout(() => didChangeEmitter.fire(), 0);
+
+  return registration;
 }
 
 async function createServerDefinition(context: vscode.ExtensionContext): Promise<vscode.McpStdioServerDefinition> {
