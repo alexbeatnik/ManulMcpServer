@@ -44,11 +44,16 @@ export function registerUserMcpConfigSync(context: vscode.ExtensionContext, logg
 
   void sync('activation');
 
-  return vscode.workspace.onDidChangeConfiguration((event) => {
-    if (event.affectsConfiguration(MANUL_CONFIGURATION_SECTION)) {
-      void sync('settings change');
-    }
-  });
+  return vscode.Disposable.from(
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration(MANUL_CONFIGURATION_SECTION)) {
+        void sync('settings change');
+      }
+    }),
+    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+      void sync('workspace folders change');
+    }),
+  );
 }
 
 function toErrorMessage(error: unknown): string {

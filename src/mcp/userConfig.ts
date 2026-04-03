@@ -124,6 +124,10 @@ function createManagedServerDefinition(
   existingEnv: JsonObject,
 ): JsonObject {
   const { cwd: _cwd, command: _command, args: _args, env: _env, type: _type, ...restServer } = existingServer;
+  const existingWorkspacePath = typeof existingEnv['MANUL_WORKSPACE_PATH'] === 'string'
+    ? existingEnv['MANUL_WORKSPACE_PATH'].trim()
+    : '';
+  const workspacePath = options.workspacePath.trim() || existingWorkspacePath;
 
   const passthroughEnv: JsonObject = {};
   for (const [key, value] of Object.entries(existingEnv)) {
@@ -145,7 +149,7 @@ function createManagedServerDefinition(
       MANUL_REQUEST_TIMEOUT_MS: String(options.requestTimeoutMs),
       MANUL_LOG_NORMALIZED_DSL: String(options.logNormalizedDsl),
       MANUL_PYTHON_PATH: options.pythonPath,
-      MANUL_WORKSPACE_PATH: options.workspacePath,
+      ...(workspacePath ? { MANUL_WORKSPACE_PATH: workspacePath } : {}),
       MANUL_EXTENSION_PATH: options.extensionPath,
       MANUL_MCP_LABEL: options.label,
     },
