@@ -109,8 +109,10 @@ function createManagedServerDefinition(
   existingServer: JsonObject,
   existingEnv: JsonObject,
 ): JsonObject {
+  const { cwd: _cwd, command: _command, args: _args, env: _env, type: _type, ...restServer } = existingServer;
+
   return {
-    ...existingServer,
+    ...restServer,
     type: 'stdio',
     command: options.command,
     args: [...options.args],

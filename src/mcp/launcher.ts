@@ -25,7 +25,6 @@ export function createManagedMcpConfigLaunchSpec(extensionPath: string): McpBrid
     "if(!ext){console.error('ManulMcpServer extension not found');process.exit(1)}",
     "const extDir=path.join(base,ext);",
     "process.env.MANUL_EXTENSION_PATH=extDir;",
-    "process.env.MANUL_WORKSPACE_PATH=process.env.MANUL_WORKSPACE_PATH||os.homedir();",
     "require(path.join(extDir,'out','mcp','stdioServer.js'));",
   ].join('');
 
