@@ -76,10 +76,13 @@ function createTools(): ToolDefinition[] {
       handler: async (argumentsValue) => {
         const step = requireString(argumentsValue, 'step');
         const result = await manulServer.runStep(step);
+        const data = asObject((result.response as { ok: boolean; data?: unknown }).data);
+        const huntProposal = typeof data['hunt_proposal'] === 'string' ? data['hunt_proposal'] : '';
         return createExecutionResult('Executed one ManulMcpServer step.', {
           normalization: result.normalization,
           issues: result.issues,
           response: result.response,
+          ...(huntProposal ? { hunt_proposal: huntProposal } : {}),
         });
       },
     },
@@ -159,12 +162,15 @@ function createTools(): ToolDefinition[] {
         const dsl = await fs.readFile(resolvedPath, 'utf8');
         const steps = extractRunnableSteps(dsl);
         const result = await manulServer.runSteps(steps, dsl);
+        const data = asObject((result.response as { ok: boolean; data?: unknown }).data);
+        const huntProposal = typeof data['hunt_proposal'] === 'string' ? data['hunt_proposal'] : '';
         return createExecutionResult(`Executed ${steps.length} ManulMcpServer step(s) from ${filePath}.`, {
           filePath,
           stepCount: steps.length,
           normalization: result.normalization,
           issues: result.issues,
           response: result.response,
+          ...(huntProposal ? { hunt_proposal: huntProposal } : {}),
         });
       },
     },
@@ -315,6 +321,18 @@ function createExecutionResult(summary: string, data: Record<string, unknown>): 
   const response = data.response;
   if (isApiFailure(response)) {
     return createErrorResult(`${summary}\n\n${response.error}`);
+  }
+
+  const huntProposal = typeof data['hunt_proposal'] === 'string' ? data['hunt_proposal'] : '';
+  if (huntProposal) {
+    const text =
+      `${summary}\n\n` +
+      `--- Proposed .hunt file ---\n${huntProposal}\n--- end ---\n\n` +
+      `To save this hunt file, call manul_save_hunt with the desired path (e.g. "tests/my_test.hunt") and the content above.`;
+    return {
+      content: [{ type: 'text', text }],
+      structuredContent: data,
+    };
   }
 
   return createSuccessResult(summary, data);
