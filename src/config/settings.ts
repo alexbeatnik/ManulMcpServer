@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import * as vscode from 'vscode';
+import { DEFAULT_API_BASE_URL, DEFAULT_TIMEOUT_MS, DEFAULT_PYTHON_PATH, normalizeBaseUrl, normalizeTimeout } from './defaults';
 
 const MANUL_CONFIGURATION_SECTION = 'manul';
 const SESSION_STATE_KEY = 'manul.sessionId';
@@ -24,11 +25,11 @@ export async function getExtensionSettings(
   const sessionId = configuredSessionId || (await getOrCreateSessionId(context));
 
   return {
-    apiBaseUrl: normalizeBaseUrl(configuration.get<string>('apiBaseUrl', 'http://127.0.0.1:8000')),
-    requestTimeoutMs: normalizeTimeout(configuration.get<number>('requestTimeoutMs', 60000)),
+    apiBaseUrl: normalizeBaseUrl(configuration.get<string>('apiBaseUrl', DEFAULT_API_BASE_URL)),
+    requestTimeoutMs: normalizeTimeout(configuration.get<number>('requestTimeoutMs', DEFAULT_TIMEOUT_MS)),
     sessionId,
     logNormalizedDsl: configuration.get<boolean>('logNormalizedDsl', true),
-    pythonPath: configuration.get<string>('pythonPath', 'python3').trim() || 'python3',
+    pythonPath: configuration.get<string>('pythonPath', DEFAULT_PYTHON_PATH).trim() || DEFAULT_PYTHON_PATH,
     headless: configuration.get<boolean>('headless', false),
     workspacePath: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '',
     extensionPath: context.extensionPath,
@@ -44,21 +45,4 @@ async function getOrCreateSessionId(context: vscode.ExtensionContext): Promise<s
   const generated = randomUUID();
   await context.globalState.update(SESSION_STATE_KEY, generated);
   return generated;
-}
-
-function normalizeBaseUrl(rawValue: string): string {
-  const trimmed = rawValue.trim();
-  if (!trimmed) {
-    return 'http://127.0.0.1:8000';
-  }
-
-  return trimmed.replace(/\/+$/, '');
-}
-
-function normalizeTimeout(rawValue: number): number {
-  if (!Number.isFinite(rawValue)) {
-    return 60000;
-  }
-
-  return Math.max(1000, Math.trunc(rawValue));
 }

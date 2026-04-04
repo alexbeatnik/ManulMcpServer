@@ -1,4 +1,5 @@
 import type { GoalNormalizationResult, NormalizationResult } from '../types/api';
+import { iterateDslLines } from './parser';
 
 const TYPO_CORRECTIONS = new Map<string, string>([
   ['clik', 'click'],
@@ -76,40 +77,11 @@ export function normalizeGoal(goal: string): GoalNormalizationResult {
 
 export function extractRunnableSteps(dsl: string): string[] {
   const steps: string[] = [];
-  const lines = dsl.split(/\r?\n/u);
-  let insideHookBlock = false;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) {
-      continue;
+  for (const line of iterateDslLines(dsl)) {
+    if (line.kind === 'action' && !line.insideHookBlock) {
+      steps.push(line.trimmed);
     }
-
-    if (/^\[(SETUP|TEARDOWN)\]$/iu.test(trimmed)) {
-      insideHookBlock = true;
-      continue;
-    }
-
-    if (/^\[END\s+(SETUP|TEARDOWN)\]$/iu.test(trimmed)) {
-      insideHookBlock = false;
-      continue;
-    }
-
-    if (insideHookBlock) {
-      continue;
-    }
-
-    if (
-      trimmed.startsWith('@') ||
-      /^STEP\s+\d*\s*:/iu.test(trimmed) ||
-      trimmed === 'DONE.'
-    ) {
-      continue;
-    }
-
-    steps.push(trimmed);
   }
-
   return steps;
 }
 

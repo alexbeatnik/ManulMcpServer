@@ -1,9 +1,9 @@
 import type { ManulDslContract } from '../types/contract';
 
 export const dslContract: ManulDslContract = {
-  version: '0.0.9.18',
+  version: '0.0.9.21',
   generatedFrom:
-    'manul_engine/helpers.py :: classify_step(), detect_mode(), parse_contextual_hint(); manul_engine/core.py :: run_mission(); manul_engine/cli.py :: parse_hunt_file(); manul_engine/actions.py :: _ActionsMixin; manul_engine/scoring.py :: DOMScorer contextual proximity rules; manul_engine/js_scripts.py :: SNAPSHOT_JS geometry export',
+    'manul_engine/helpers.py :: classify_step(), detect_mode(), parse_contextual_hint(); manul_engine/core.py :: run_mission(); manul_engine/cli.py :: parse_hunt_file(); manul_engine/actions.py :: _ActionsMixin; manul_engine/scoring.py :: DOMScorer contextual proximity rules; manul_engine/js_scripts.py :: SNAPSHOT_JS geometry export; manul_engine/scanner.py :: scan_main(); manul_engine/recorder.py :: record_main(); manul_engine/scheduler.py :: daemon_main()',
   commands: [
     {
       id: 'navigate',
@@ -238,6 +238,7 @@ export const dslContract: ManulDslContract = {
       regex: String.raw`\bRIGHT\s+CLICK\b`,
       description: 'Right-clicks a resolved element to open a context menu.',
       category: 'interaction',
+      interactionMode: 'clickable',
     },
     {
       id: 'upload',
@@ -401,7 +402,7 @@ export const dslContract: ManulDslContract = {
       label: '@script:',
       uiText: '@script: {alias} = scripts.helpers',
       snippet: '@script: {${1:alias}} = ${2:scripts.helpers}',
-      description: 'Declares a file-local Python helper alias for later CALL PYTHON usage. Supported forms: module alias and callable alias. Targets must be dotted Python import paths only.',
+      description: 'Declares a file-local Python helper alias for later CALL PYTHON usage. Supported forms: module alias (`@script: {auth} = scripts.auth_helpers` -> `CALL PYTHON {auth}.issue_token`) and callable alias (`@script: {issue_token} = scripts.auth_helpers.issue_token` -> `CALL PYTHON {issue_token}`). Alias names must match placeholder identifiers (`^[A-Za-z_]\\w*$`). Targets must be dotted Python import paths only: no `/`, no `\\`, and no `.py` suffix.',
     },
     {
       id: 'data',
@@ -425,7 +426,7 @@ export const dslContract: ManulDslContract = {
       openTag: '[SETUP]',
       closeTag: '[END SETUP]',
       snippet: '[SETUP]\n    PRINT "${1:Preparing setup}"\n    CALL PYTHON ${2:module}.${3:function}${4: with args: "${5:arg}"}${6: into {${7:variable}}}\n[END SETUP]',
-      description: 'Block of PRINT and CALL PYTHON lines executed before the browser launches. If any line fails, the mission is marked as broken and browser steps are skipped.',
+      description: 'Block of PRINT and CALL PYTHON lines executed BEFORE the browser launches. If any line fails, the mission is marked as broken and browser steps are skipped. Teardown is not called when setup fails. Target functions must be synchronous.',
     },
     {
       id: 'teardown',
@@ -440,7 +441,7 @@ export const dslContract: ManulDslContract = {
     {
       id: 'drag',
       triggers: ['drag', 'drop'],
-      triggerRule: "Both 'drag' and 'drop' must be present as word-boundary tokens.",
+      triggerRule: "Both 'drag' AND 'drop' must be present as word-boundary tokens.",
       description: 'Drag-and-drop interaction via Playwright or manual mouse events.',
     },
     {

@@ -33,47 +33,7 @@ export function registerHoverProvider(): vscode.Disposable {
 
 function findCommandForLine(line: string): CommandDefinition | undefined {
   const normalized = line.toUpperCase();
-
-  return dslContract.commands.find((command) => {
-    const label = command.label.toUpperCase();
-    if (normalized.startsWith(label)) {
-      return true;
-    }
-
-    if (command.label === 'Click' && normalized.startsWith('CLICK')) {
-      return true;
-    }
-
-    if (command.label === 'Fill' && normalized.startsWith('FILL')) {
-      return true;
-    }
-
-    if (command.label === 'Type' && normalized.startsWith('TYPE')) {
-      return true;
-    }
-
-    if (command.label === 'Select' && normalized.startsWith('SELECT')) {
-      return true;
-    }
-
-    if (command.label === 'Check' && normalized.startsWith('CHECK')) {
-      return true;
-    }
-
-    if (command.label === 'Uncheck' && normalized.startsWith('UNCHECK')) {
-      return true;
-    }
-
-    if (command.label === 'Drag' && normalized.startsWith('DRAG')) {
-      return true;
-    }
-
-    if (command.label === 'Wait for element' && normalized.startsWith('WAIT FOR') && !normalized.startsWith('WAIT FOR RESPONSE')) {
-      return true;
-    }
-
-    return false;
-  });
+  return dslContract.commands.find((command) => normalized.startsWith(command.label.toUpperCase()));
 }
 
 function findMetadataAtPosition(document: vscode.TextDocument, position: vscode.Position): MetadataDirectiveDefinition | undefined {

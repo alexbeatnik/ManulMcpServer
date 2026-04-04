@@ -1,4 +1,5 @@
 import type { ValidationIssue } from '../types/api';
+import { iterateDslLines } from './parser';
 
 const QUOTED = String.raw`['"][^'"]+['"]`;
 const OPTIONAL_IF_EXISTS = String.raw`(?:\s+if exists)?`;
@@ -61,94 +62,86 @@ export function validateStep(step: string, lineNumber = 1): ValidationIssue[] {
 
 export function validateDocument(documentText: string): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
-  const lines = documentText.split(/\r?\n/u);
-  let insideHookBlock = false;
-  let currentHookStartLine = 0;
   let currentStepHeader = false;
   let doneSeen = false;
+  let lastHookOpenLine = 0;
+  let unclosedHook = false;
 
-  for (let index = 0; index < lines.length; index += 1) {
-    const rawLine = lines[index] ?? '';
-    const lineNumber = index + 1;
-    const trimmed = rawLine.trim();
-
-    if (!trimmed || trimmed.startsWith('#')) {
+  for (const line of iterateDslLines(documentText)) {
+    if (line.kind === 'blank' || line.kind === 'comment') {
       continue;
     }
 
     if (doneSeen) {
-      issues.push(createIssue(lineNumber, 1, rawLine.length + 1, 'Content after DONE. is not allowed.', 'warning', 'content-after-done'));
+      issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'Content after DONE. is not allowed.', 'warning', 'content-after-done'));
       continue;
     }
 
-    if (/^\[(SETUP|TEARDOWN)\]$/iu.test(trimmed)) {
-      if (rawLine !== trimmed) {
-        issues.push(createIssue(lineNumber, 1, rawLine.length + 1, 'Hook block markers must be flush-left.', 'warning', 'indentation-hook-marker'));
+    if (line.kind === 'hook_open') {
+      if (line.raw !== line.trimmed) {
+        issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'Hook block markers must be flush-left.', 'warning', 'indentation-hook-marker'));
       }
-
-      insideHookBlock = true;
-      currentHookStartLine = lineNumber;
+      lastHookOpenLine = line.lineNumber;
+      unclosedHook = true;
       continue;
     }
 
-    if (/^\[END\s+(SETUP|TEARDOWN)\]$/iu.test(trimmed)) {
-      if (rawLine !== trimmed) {
-        issues.push(createIssue(lineNumber, 1, rawLine.length + 1, 'Hook block markers must be flush-left.', 'warning', 'indentation-hook-marker'));
+    if (line.kind === 'hook_close') {
+      if (line.raw !== line.trimmed) {
+        issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'Hook block markers must be flush-left.', 'warning', 'indentation-hook-marker'));
       }
-
-      insideHookBlock = false;
-      currentHookStartLine = 0;
+      unclosedHook = false;
       continue;
     }
 
-    if (insideHookBlock) {
-      if (!rawLine.startsWith('    ')) {
-        issues.push(createIssue(lineNumber, 1, rawLine.length + 1, 'Lines inside hook blocks must use a 4-space indent.', 'warning', 'indentation-hook-body'));
+    if (line.insideHookBlock) {
+      if (!line.raw.startsWith('    ')) {
+        issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'Lines inside hook blocks must use a 4-space indent.', 'warning', 'indentation-hook-body'));
       }
-
-      if (!/^(PRINT\s+".*"|CALL\s+PYTHON\s+.+)$/u.test(trimmed)) {
-        issues.push(createIssue(lineNumber, 1, trimmed.length + 1, 'Only PRINT and CALL PYTHON are valid inside hook blocks.', 'error', 'invalid-hook-command'));
+      if (!/^(PRINT\s+".*"|CALL\s+PYTHON\s+.+)$/u.test(line.trimmed)) {
+        issues.push(createIssue(line.lineNumber, 1, line.trimmed.length + 1, 'Only PRINT and CALL PYTHON are valid inside hook blocks.', 'error', 'invalid-hook-command'));
       }
       continue;
     }
 
-    if (/^@(context|title|blueprint|tags|var|script|data|schedule):/iu.test(trimmed)) {
-      if (rawLine !== trimmed) {
-        issues.push(createIssue(lineNumber, 1, rawLine.length + 1, 'Metadata lines must be flush-left.', 'warning', 'indentation-metadata'));
+    if (line.kind === 'metadata') {
+      if (line.raw !== line.trimmed) {
+        issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'Metadata lines must be flush-left.', 'warning', 'indentation-metadata'));
       }
       continue;
     }
 
-    if (/^STEP\s+\d*\s*:/iu.test(trimmed)) {
-      if (rawLine !== trimmed) {
-        issues.push(createIssue(lineNumber, 1, rawLine.length + 1, 'STEP headers must be flush-left.', 'warning', 'indentation-step'));
+    if (line.kind === 'step_header') {
+      if (line.raw !== line.trimmed) {
+        issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'STEP headers must be flush-left.', 'warning', 'indentation-step'));
       }
       currentStepHeader = true;
       continue;
     }
 
-    if (trimmed === 'DONE.') {
-      if (rawLine !== trimmed) {
-        issues.push(createIssue(lineNumber, 1, rawLine.length + 1, 'DONE. must be flush-left.', 'warning', 'indentation-done'));
+    if (line.kind === 'done') {
+      if (line.raw !== line.trimmed) {
+        issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'DONE. must be flush-left.', 'warning', 'indentation-done'));
       }
       doneSeen = true;
       currentStepHeader = false;
       continue;
     }
 
-    if (!rawLine.startsWith('    ')) {
-      issues.push(createIssue(lineNumber, 1, rawLine.length + 1, 'Action lines must be indented with 4 spaces under a STEP header.', 'warning', 'indentation-action'));
+    // action line
+    if (!line.raw.startsWith('    ')) {
+      issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'Action lines must be indented with 4 spaces under a STEP header.', 'warning', 'indentation-action'));
     }
 
     if (!currentStepHeader) {
-      issues.push(createIssue(lineNumber, 1, rawLine.length + 1, 'Action lines should appear after a STEP header.', 'warning', 'missing-step-header'));
+      issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'Action lines should appear after a STEP header.', 'warning', 'missing-step-header'));
     }
 
-    issues.push(...validateStep(trimmed, lineNumber));
+    issues.push(...validateStep(line.trimmed, line.lineNumber));
   }
 
-  if (insideHookBlock) {
-    issues.push(createIssue(currentHookStartLine, 1, 2, 'Hook block is not closed.', 'error', 'unclosed-hook-block'));
+  if (unclosedHook) {
+    issues.push(createIssue(lastHookOpenLine, 1, 2, 'Hook block is not closed.', 'error', 'unclosed-hook-block'));
   }
 
   return issues;

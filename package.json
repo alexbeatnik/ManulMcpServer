@@ -97,6 +97,20 @@
         "path": "./snippets/hunt.json"
       }
     ],
+    "keybindings": [
+      {
+        "command": "manul.runFile",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "editorLangId == hunt"
+      },
+      {
+        "command": "manul.runStep",
+        "key": "ctrl+shift+enter",
+        "mac": "cmd+shift+enter",
+        "when": "editorLangId == hunt"
+      }
+    ],
     "mcpServerDefinitionProviders": [
       {
         "id": "manul.mcp-servers",
@@ -149,6 +163,8 @@
     "build": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "check": "tsc -p ./ --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "vscode:install": "node ./out/lifecycle/install.js",
     "vscode:prepublish": "npm run build",
     "vscode:uninstall": "node ./out/lifecycle/uninstall.js",
@@ -161,6 +177,7 @@
     "@types/node": "^20.17.57",
     "@types/vscode": "^1.110.0",
     "@vscode/vsce": "^3.2.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.2"
   }
 }

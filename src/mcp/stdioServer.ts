@@ -10,6 +10,7 @@ import { extractRunnableSteps, normalizeGoal, normalizeNaturalLanguageStep } fro
 import { validateDocument, validateStep } from '../dsl/validator';
 import { ManulMcpServer } from './server';
 import { PythonRunner } from '../services/pythonRunner';
+import { resolveInsideWorkspace } from '../security/pathValidator';
 
 interface ToolDefinition {
   readonly name: string;
@@ -151,22 +152,11 @@ function createTools(): ToolDefinition[] {
       handler: async (argumentsValue) => {
         const filePath = requireString(argumentsValue, 'filePath');
         const workspaceRoot = path.resolve(runtimeSettings.workspacePath || process.cwd());
-        const resolvedFilePath = path.isAbsolute(filePath) ? filePath : path.resolve(workspaceRoot, filePath);
-        const relative = path.relative(workspaceRoot, resolvedFilePath);
-        if (relative.startsWith('..') || path.isAbsolute(relative)) {
-          throw new Error(`Access denied: file path must be inside the workspace (${workspaceRoot})`);
-        }
-        if (path.extname(resolvedFilePath).toLowerCase() !== '.hunt') {
-          throw new Error('Access denied: only .hunt files may be read by manul_run_hunt_file');
-        }
-        // Resolve symlinks so a link inside the workspace cannot reference a target outside it
-        const realRoot = await fs.realpath(workspaceRoot);
-        const realFilePath = await fs.realpath(resolvedFilePath);
-        const realRelative = path.relative(realRoot, realFilePath);
-        if (realRelative.startsWith('..') || path.isAbsolute(realRelative)) {
-          throw new Error(`Access denied: file path must be inside the workspace (${workspaceRoot})`);
-        }
-        const dsl = await fs.readFile(realFilePath, 'utf8');
+        const { resolvedPath } = await resolveInsideWorkspace(filePath, workspaceRoot, {
+          allowedExtensions: ['.hunt'],
+          requireExists: true,
+        });
+        const dsl = await fs.readFile(resolvedPath, 'utf8');
         const steps = extractRunnableSteps(dsl);
         const result = await manulServer.runSteps(steps, dsl);
         return createExecutionResult(`Executed ${steps.length} ManulMcpServer step(s) from ${filePath}.`, {
@@ -252,25 +242,10 @@ function createTools(): ToolDefinition[] {
         const filePath = requireString(argumentsValue, 'path');
         const content = requireString(argumentsValue, 'content');
         const workspaceRoot = path.resolve(runtimeSettings.workspacePath || process.cwd());
-        const resolvedFilePath = path.isAbsolute(filePath) ? filePath : path.resolve(workspaceRoot, filePath);
-        const relative = path.relative(workspaceRoot, resolvedFilePath);
-        if (relative.startsWith('..') || path.isAbsolute(relative)) {
-          throw new Error(`Access denied: save path must be inside the workspace (${workspaceRoot})`);
-        }
-        if (path.extname(resolvedFilePath).toLowerCase() !== '.hunt') {
-          throw new Error('Access denied: only .hunt files may be written by manul_save_hunt');
-        }
-        // Resolve symlinks on the parent directory (the file may not exist yet) so a
-        // symlinked directory inside the workspace cannot point to a target outside it
-        const realRoot = await fs.realpath(workspaceRoot);
-        const parentDir = path.dirname(resolvedFilePath);
-        const realParent = await fs.realpath(parentDir);
-        const realFilePath = path.join(realParent, path.basename(resolvedFilePath));
-        const realRelative = path.relative(realRoot, realFilePath);
-        if (realRelative.startsWith('..') || path.isAbsolute(realRelative)) {
-          throw new Error(`Access denied: save path must be inside the workspace (${workspaceRoot})`);
-        }
-        const response = await pythonRunner.saveHunt(filePath, content);
+        const { resolvedPath } = await resolveInsideWorkspace(filePath, workspaceRoot, {
+          allowedExtensions: ['.hunt'],
+        });
+        const response = await pythonRunner.saveHunt(resolvedPath, content);
         return createExecutionResult(`Hunt file saved.`, { response });
       },
     },
