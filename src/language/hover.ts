@@ -33,7 +33,22 @@ export function registerHoverProvider(): vscode.Disposable {
 
 function findCommandForLine(line: string): CommandDefinition | undefined {
   const normalized = line.toUpperCase();
-  return dslContract.commands.find((command) => normalized.startsWith(command.label.toUpperCase()));
+
+  return dslContract.commands.find((command) => {
+    // Use the command's regex when available for precise matching
+    if (command.regex) {
+      try {
+        // Convert Python named groups to JS syntax and test
+        const jsPattern = command.regex.replace(/\(\?P<\w+>/g, '(?:');
+        if (new RegExp(jsPattern, 'iu').test(line)) {
+          return true;
+        }
+      } catch {
+        // Fall through to label-based match
+      }
+    }
+    return normalized.startsWith(command.label.toUpperCase());
+  });
 }
 
 function findMetadataAtPosition(document: vscode.TextDocument, position: vscode.Position): MetadataDirectiveDefinition | undefined {

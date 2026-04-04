@@ -42,14 +42,26 @@ export async function resolveInsideWorkspace(
     return { resolvedPath: realFile };
   }
 
-  // For files that may not exist yet, check the parent directory
-  const parentDir = path.dirname(resolved);
-  const realParent = await fs.realpath(parentDir);
-  const realFile = path.join(realParent, path.basename(resolved));
-  const realRelative = path.relative(realRoot, realFile);
-  if (realRelative.startsWith('..') || path.isAbsolute(realRelative)) {
-    throw new Error(`Access denied: path must be inside the workspace (${root})`);
+  // For files that may not exist yet, check the nearest existing ancestor
+  let ancestor = path.dirname(resolved);
+  while (ancestor !== path.dirname(ancestor)) {
+    try {
+      const realAncestor = await fs.realpath(ancestor);
+      const realFile = path.join(realAncestor, path.relative(ancestor, resolved));
+      const realRelative = path.relative(realRoot, realFile);
+      if (realRelative.startsWith('..') || path.isAbsolute(realRelative)) {
+        throw new Error(`Access denied: path must be inside the workspace (${root})`);
+      }
+      return { resolvedPath: path.resolve(root, relative) };
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+        ancestor = path.dirname(ancestor);
+        continue;
+      }
+      throw err;
+    }
   }
 
-  return { resolvedPath: realFile };
+  // All ancestors resolved to root — path is safe
+  return { resolvedPath: resolved };
 }
