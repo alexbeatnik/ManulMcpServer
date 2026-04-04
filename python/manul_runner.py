@@ -341,6 +341,14 @@ class ManulRunner:
         if not abs_path.endswith(".hunt"):
             return {"ok": False, "error": "Access denied: only .hunt files may be written."}
 
+        # Reject existing symlink files to prevent writing outside the workspace
+        if os.path.islink(abs_path):
+            real_file = os.path.realpath(abs_path)
+            if workspace_root:
+                real_root = os.path.realpath(workspace_root)
+                if not real_file.startswith(real_root + os.sep) and real_file != real_root:
+                    return {"ok": False, "error": f"Access denied: refusing to write through symlink to {real_file}"}
+
         os.makedirs(os.path.dirname(abs_path) or ".", exist_ok=True)
         with open(abs_path, "w", encoding="utf-8") as fh:
             fh.write(content)

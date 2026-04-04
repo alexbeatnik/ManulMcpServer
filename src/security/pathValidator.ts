@@ -42,6 +42,25 @@ export async function resolveInsideWorkspace(
     return { resolvedPath: realFile };
   }
 
+  // If the target already exists, validate its real path (prevents symlink-file escape)
+  try {
+    const stat = await fs.lstat(resolved);
+    if (stat.isSymbolicLink()) {
+      const realFile = await fs.realpath(resolved);
+      const realRelative = path.relative(realRoot, realFile);
+      if (realRelative.startsWith('..') || path.isAbsolute(realRelative)) {
+        throw new Error(`Access denied: path must be inside the workspace (${root})`);
+      }
+      return { resolvedPath: realFile };
+    }
+    // Exists and is not a symlink — safe
+    return { resolvedPath: resolved };
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw err;
+    }
+  }
+
   // For files that may not exist yet, check the nearest existing ancestor
   let ancestor = path.dirname(resolved);
   while (ancestor !== path.dirname(ancestor)) {

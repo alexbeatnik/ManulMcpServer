@@ -38,8 +38,10 @@ function findCommandForLine(line: string): CommandDefinition | undefined {
     // Use the command's regex when available for precise matching
     if (command.regex) {
       try {
-        // Convert Python named groups to JS syntax and test
-        const jsPattern = command.regex.replace(/\(\?P<\w+>/g, '(?:');
+        // Convert Python named groups (?P<name>) to JS (?<name>) and backreferences (?P=name) to \k<name>
+        const jsPattern = command.regex
+          .replace(/\(\?P<(\w+)>/g, '(?<$1>')
+          .replace(/\(\?P=(\w+)\)/g, '\\k<$1>');
         if (new RegExp(jsPattern, 'iu').test(line)) {
           return true;
         }
