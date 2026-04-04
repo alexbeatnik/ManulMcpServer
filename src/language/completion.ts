@@ -103,8 +103,16 @@ function buildStructureItems(): vscode.CompletionItem[] {
   return [stepItem, doneItem];
 }
 
+const QUALIFIER_TRIGGER_REGEX = new RegExp(
+  `(?:${dslContract.commands
+    .filter((c) => c.interactionMode)
+    .map((c) => c.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('|')})\\b`,
+  'iu',
+);
+
 function shouldSuggestQualifiers(linePrefix: string): boolean {
-  return /(?:Click|DOUBLE CLICK|Fill|Type|Select|Check|Uncheck|HOVER|RIGHT CLICK)\b/iu.test(linePrefix);
+  return QUALIFIER_TRIGGER_REGEX.test(linePrefix);
 }
 
 function rawLineNeedsCommand(linePrefix: string): boolean {

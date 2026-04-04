@@ -19,13 +19,13 @@ VS Code extension that turns [ManulEngine](https://github.com/alexbeatnik/ManulE
 1. Install the `.vsix` file:
 
 ```bash
-code --install-extension manul-mcp-server-0.0.2.vsix
+code --install-extension manul-mcp-server-0.0.4.vsix
 ```
 
 2. Install the runtime dependencies:
 
 ```bash
-pip install manul-engine==0.0.9.19
+pip install manul-engine==0.0.9.21
 playwright install
 ```
 
@@ -52,7 +52,7 @@ For a new machine, the extension is not fully self-contained. The `mcp.json` wir
 
 1. Install the extension.
 2. Install Python 3.10+.
-3. Install `manul-engine==0.0.9.19` into the Python environment you want the server to use.
+3. Install `manul-engine==0.0.9.21` into the Python environment you want the server to use.
 4. Run `playwright install`.
 5. Open the target workspace if you expect workspace-local `.venv` auto-detection.
 6. Reload VS Code.
@@ -125,6 +125,7 @@ Open **Settings** (Ctrl+,) and search for `manul`:
 | `manul_get_state` | Get current browser and session state |
 | `manul_preview_goal` | Preview goal-to-DSL conversion without execution |
 | `manul_scan_page` | List all interactive elements on the current page |
+| `manul_read_page_text` | Read all visible text content from the current page |
 | `manul_save_hunt` | Save a `.hunt` file to disk |
 
 ---
@@ -132,7 +133,7 @@ Open **Settings** (Ctrl+,) and search for `manul`:
 ## Troubleshooting
 
 - `manul-engine not installed: No module named 'manul_engine'`
-    Install `manul-engine==0.0.9.19` into the Python interpreter selected by `manul.pythonPath`, or open the workspace so the extension can discover the local `.venv`.
+    Install `manul-engine==0.0.9.21` into the Python interpreter selected by `manul.pythonPath`, or open the workspace so the extension can discover the local `.venv`.
 - `node: command not found`
     The managed user-scope MCP entry launches the bridge with `node`, so Node.js must be available on `PATH`.
 - The MCP server starts but does not pick up the workspace `.venv`
@@ -178,7 +179,36 @@ DONE.
 
 ---
 
+## Keyboard Shortcuts
+
+| Shortcut | Mac | Command |
+|----------|-----|---------|
+| `Ctrl+Shift+R` | `Cmd+Shift+R` | Run Hunt File |
+| `Ctrl+Shift+Enter` | `Cmd+Shift+Enter` | Run Step |
+
+Shortcuts are active when a `.hunt` file is focused in the editor.
+
+---
+
 ## What's New
+
+### 0.0.4
+
+- **Stability:** Fixed PythonRunner `ensureProcess()` race condition — concurrent callers no longer spawn duplicate processes.
+- **Stability:** Browser now stays alive on step failure for inspect/retry instead of closing the session.
+- **Security:** Workspace-jail path validation added to Python `save_hunt` handler and extracted into shared `pathValidator.ts`.
+- **Performance:** Page scan now runs only on the last step or on failure, not after every step.
+- **Performance:** Shadow-root traversal uses targeted selector instead of `querySelectorAll('*')`.
+- **Maintainability:** Centralized config defaults into `src/config/defaults.ts` — no more duplicated normalizers.
+- **Maintainability:** Shared DSL line iterator (`src/dsl/parser.ts`) eliminates duplicated hook-block state machines.
+- **DX:** Hover provider rewritten as data-driven loop from contract — no more hardcoded if-branches.
+- **DX:** Qualifier suggestion regex derived from contract `interactionMode` instead of hardcoded list.
+- **DX:** Keyboard shortcuts for Run Hunt File (`Ctrl+Shift+R`) and Run Step (`Ctrl+Shift+Enter`).
+- **DX:** Added `manul_read_page_text` MCP tool for reading visible page text.
+- **Testing:** Added vitest with 67 unit tests covering validator, builder, parser, and config defaults.
+- Updated DSL contract to v0.0.9.21.
+
+### 0.0.3
 
 - Managed user-scope `mcp.json` sync on install, activation, settings change, and uninstall.
 - User-scope MCP bootstrap now resolves the latest installed extension directory via `node -e` instead of a stale versioned script path.

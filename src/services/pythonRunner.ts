@@ -89,8 +89,7 @@ export class PythonRunner {
   private messageCounter = 0;
   private lineBuffer = '';
   private ready = false;
-  private readonly readyWaiters: Array<{ resolve: () => void; reject: (e: Error) => void }> = [];
-  private starting = false;
+  private startingPromise: Promise<void> | null = null;
 
   public constructor(
     private readonly options: PythonRunnerOptions,
@@ -176,6 +175,7 @@ export class PythonRunner {
     this.process.kill();
     this.process = null;
     this.ready = false;
+    this.startingPromise = null;
   }
 
   // ── subprocess lifecycle ────────────────────────────────────────────────────
@@ -185,13 +185,15 @@ export class PythonRunner {
       return Promise.resolve();
     }
 
-    if (this.starting) {
-      return new Promise((resolve, reject) => {
-        this.readyWaiters.push({ resolve, reject });
-      });
+    if (this.startingPromise) {
+      return this.startingPromise;
     }
 
-    this.starting = true;
+    this.startingPromise = this.spawnAndWaitReady();
+    return this.startingPromise;
+  }
+
+  private spawnAndWaitReady(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       this.logger.info(`Spawning Python runner: ${this.resolvedPythonPath} ${this.options.runnerScriptPath}`);
 
@@ -234,10 +236,8 @@ export class PythonRunner {
       child.on('error', (err) => {
         this.logger.error(`Python runner spawn error: ${err.message}`);
         this.ready = false;
-        this.starting = false;
+        this.startingPromise = null;
         this.process = null;
-        for (const w of this.readyWaiters) { w.reject(err); }
-        this.readyWaiters.length = 0;
         reject(err);
       });
 
@@ -245,12 +245,10 @@ export class PythonRunner {
         this.logger.warn(`Python runner exited (code ${String(code)})`);
         const wasStarting = !this.ready;
         this.ready = false;
-        this.starting = false;
+        this.startingPromise = null;
         this.process = null;
         const exitErr = new Error(`Runner process exited with code ${String(code)}`);
-        for (const w of this.readyWaiters) { w.reject(exitErr); }
-        this.readyWaiters.length = 0;
-        // Reject the startup promise if the process exited before ever becoming ready
+        // Reject startup promise if the process dies before becoming ready
         if (wasStarting) {
           reject(exitErr);
         }
@@ -277,18 +275,13 @@ export class PythonRunner {
     if (msg.type === 'ready') {
       this.logger.info('Python runner ready.');
       this.ready = true;
-      this.starting = false;
       readyResolve();
-      for (const w of this.readyWaiters) { w.resolve(); }
-      this.readyWaiters.length = 0;
       return;
     }
 
     if (msg.type === 'error' && !this.ready) {
       const err = new Error(msg.error ?? 'Python runner startup error');
-      this.starting = false;
-      for (const w of this.readyWaiters) { w.reject(err); }
-      this.readyWaiters.length = 0;
+      this.startingPromise = null;
       readyReject(err);
       return;
     }

@@ -11,9 +11,11 @@ VS Code Extension Host
     ├── config/
     │   ├── settings.ts        — typed wrapper around VS Code workspace settings
     │   ├── runtimeSettings.ts — env-var-based config for the MCP bridge process
+    │   ├── defaults.ts        — shared constants and normalize functions
     │   └── contract.ts        — DSL contract loader (pages.json / MANUL_DSL_CONTRACT)
     ├── dsl/
     │   ├── builder.ts         — natural language → DSL normalization
+    │   ├── parser.ts          — shared DSL line iterator (iterateDslLines)
     │   └── validator.ts       — deterministic DSL validation (regex-based, no engine needed)
     ├── language/
     │   ├── completion.ts      — IntelliSense completions for .hunt files
@@ -105,7 +107,7 @@ cd ../ManulMcpServer
 # Optional: create workspace venv (auto-detected by PythonRunner)
 python3 -m venv .venv
 source .venv/bin/activate
-pip install manul-engine==0.0.9.19
+pip install manul-engine==0.0.9.21
 playwright install
 ```
 
@@ -130,7 +132,7 @@ npm run watch
 npm run package
 
 # Install into VS Code
-code --install-extension manul-mcp-server-0.0.2.vsix --force
+code --install-extension manul-mcp-server-0.0.4.vsix --force
 
 # Lifecycle hooks used by installed builds
 npm run vscode:install
@@ -151,10 +153,10 @@ After installing, run **Developer: Reload Window** in VS Code.
 
 The runner is a long-lived async process. Key design decisions:
 
-- **Session persistence**: a single `ManulSession` (Playwright) is reused across all steps until a step fails, at which point `_close_session()` is called so the next call gets a fresh browser
+- **Session persistence**: a single `ManulSession` (Playwright) is reused across all steps; the browser stays alive even on failure so the user can inspect/retry. Only explicit reset or shutdown closes the session.
 - **`cwd`**: spawned with `cwd = workspacePath` so relative paths like `tests/foo.hunt` resolve to the user's current workspace, not the extension install dir
-- **`page_scan`**: embedded in every step result — runs `_SCAN_PAGE_JS` after each action to capture interactive element state
-- **Custom `_SCAN_PAGE_JS`**: maintained inline in `manul_runner.py` (not imported from engine) to allow independent evolution; includes `label[for]` resolution for radio/checkbox, `value` field for inputs, `manul_id` field
+- **`page_scan`**: runs `_SCAN_PAGE_JS` only on the last step or on failure to reduce overhead; captures interactive element state
+- **Custom `_SCAN_PAGE_JS`**: maintained inline in `manul_runner.py` (not imported from engine) to allow independent evolution; includes `label[for]` resolution for radio/checkbox, `value` field for inputs, `manul_id` field; shadow-root traversal uses targeted selectors
 
 ### Adding a New Method
 

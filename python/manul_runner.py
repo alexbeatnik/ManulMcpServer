@@ -135,7 +135,7 @@ _SCAN_PAGE_JS = """() => {
             }
             results.push(entry);
         }
-        for (const el of root.querySelectorAll('*')) {
+        for (const el of root.querySelectorAll('[class*="shadow"], [class*="component"], [data-shadow], *:defined:not(div):not(span):not(p):not(a):not(button):not(input):not(select):not(textarea):not(ul):not(ol):not(li):not(table):not(tr):not(td):not(th):not(form):not(label):not(img):not(h1):not(h2):not(h3):not(h4):not(h5):not(h6):not(nav):not(section):not(article):not(header):not(footer):not(main)')) {
             if (el.shadowRoot) scanRoot(el.shadowRoot, results, seen);
         }
     }
@@ -249,12 +249,14 @@ class ManulRunner:
         newly_succeeded: list[str] = []
 
         failed = False
-        for step in steps:
+        for i, step in enumerate(steps):
+            is_last = i == len(steps) - 1
             _log(f"Step: {step}")
             try:
                 result = await self._session.run_steps(step)  # type: ignore[union-attr]
                 status = getattr(result, "status", "pass")
-                page_scan = await self._scan_current_page()
+                # Only scan page on the last step or on failure to reduce overhead
+                page_scan = await self._scan_current_page() if (is_last or status != "pass") else []
                 if status == "pass":
                     newly_succeeded.append(step)
                     results.append({"step": step, "status": "pass", "page_scan": page_scan})
@@ -272,10 +274,8 @@ class ManulRunner:
                 failed = True
                 break
 
-        if failed:
-            # Close the session so the next call gets a fresh browser instead of
-            # re-using a potentially broken page/context.
-            await self._close_session()
+        # Keep the browser alive on failure so the user can inspect/retry.
+        # Only an explicit reset or shutdown should close the session.
 
         self._executed_steps.extend(newly_succeeded)
         hunt_proposal = _build_hunt(self._context, self._title, self._executed_steps)
@@ -327,7 +327,28 @@ class ManulRunner:
         if not content:
             return {"ok": False, "error": "content is required."}
 
-        abs_path = os.path.abspath(path)
+        # Workspace-jail: resolve relative to MANUL_WORKSPACE_PATH and reject escapes
+        workspace_root = os.environ.get("MANUL_WORKSPACE_PATH", "").strip()
+        if workspace_root:
+            abs_path = os.path.normpath(os.path.join(workspace_root, path)) if not os.path.isabs(path) else os.path.normpath(path)
+            real_root = os.path.realpath(workspace_root)
+            real_path = os.path.realpath(os.path.dirname(abs_path))
+            if not real_path.startswith(real_root + os.sep) and real_path != real_root:
+                return {"ok": False, "error": f"Access denied: save path must be inside the workspace ({workspace_root})"}
+        else:
+            abs_path = os.path.abspath(path)
+
+        if not abs_path.endswith(".hunt"):
+            return {"ok": False, "error": "Access denied: only .hunt files may be written."}
+
+        # Reject existing symlink files to prevent writing outside the workspace
+        if os.path.islink(abs_path):
+            real_file = os.path.realpath(abs_path)
+            if workspace_root:
+                real_root = os.path.realpath(workspace_root)
+                if not real_file.startswith(real_root + os.sep) and real_file != real_root:
+                    return {"ok": False, "error": f"Access denied: refusing to write through symlink to {real_file}"}
+
         os.makedirs(os.path.dirname(abs_path) or ".", exist_ok=True)
         with open(abs_path, "w", encoding="utf-8") as fh:
             fh.write(content)

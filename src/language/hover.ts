@@ -5,6 +5,21 @@ import type { CommandDefinition, ContextualQualifierDefinition, MetadataDirectiv
 
 const HUNT_SELECTOR: vscode.DocumentSelector = { language: 'hunt', scheme: 'file' };
 
+/** Precompiled JS regexes for contract commands (built once at module load). */
+const compiledCommandRegexes = new Map<string, RegExp>();
+for (const command of dslContract.commands) {
+  if (command.regex) {
+    try {
+      const jsPattern = command.regex
+        .replace(/\(\?P<(\w+)>/g, '(?<$1>')
+        .replace(/\(\?P=(\w+)\)/g, '\\k<$1>');
+      compiledCommandRegexes.set(command.id, new RegExp(jsPattern, 'iu'));
+    } catch {
+      // Skip commands with unconvertible regexes — will fall back to label match
+    }
+  }
+}
+
 export function registerHoverProvider(): vscode.Disposable {
   return vscode.languages.registerHoverProvider(HUNT_SELECTOR, {
     provideHover(document, position) {
@@ -35,44 +50,11 @@ function findCommandForLine(line: string): CommandDefinition | undefined {
   const normalized = line.toUpperCase();
 
   return dslContract.commands.find((command) => {
-    const label = command.label.toUpperCase();
-    if (normalized.startsWith(label)) {
+    const compiled = compiledCommandRegexes.get(command.id);
+    if (compiled?.test(line)) {
       return true;
     }
-
-    if (command.label === 'Click' && normalized.startsWith('CLICK')) {
-      return true;
-    }
-
-    if (command.label === 'Fill' && normalized.startsWith('FILL')) {
-      return true;
-    }
-
-    if (command.label === 'Type' && normalized.startsWith('TYPE')) {
-      return true;
-    }
-
-    if (command.label === 'Select' && normalized.startsWith('SELECT')) {
-      return true;
-    }
-
-    if (command.label === 'Check' && normalized.startsWith('CHECK')) {
-      return true;
-    }
-
-    if (command.label === 'Uncheck' && normalized.startsWith('UNCHECK')) {
-      return true;
-    }
-
-    if (command.label === 'Drag' && normalized.startsWith('DRAG')) {
-      return true;
-    }
-
-    if (command.label === 'Wait for element' && normalized.startsWith('WAIT FOR') && !normalized.startsWith('WAIT FOR RESPONSE')) {
-      return true;
-    }
-
-    return false;
+    return normalized.startsWith(command.label.toUpperCase());
   });
 }
 
