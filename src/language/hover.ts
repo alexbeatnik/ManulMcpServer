@@ -5,6 +5,21 @@ import type { CommandDefinition, ContextualQualifierDefinition, MetadataDirectiv
 
 const HUNT_SELECTOR: vscode.DocumentSelector = { language: 'hunt', scheme: 'file' };
 
+/** Precompiled JS regexes for contract commands (built once at module load). */
+const compiledCommandRegexes = new Map<string, RegExp>();
+for (const command of dslContract.commands) {
+  if (command.regex) {
+    try {
+      const jsPattern = command.regex
+        .replace(/\(\?P<(\w+)>/g, '(?<$1>')
+        .replace(/\(\?P=(\w+)\)/g, '\\k<$1>');
+      compiledCommandRegexes.set(command.id, new RegExp(jsPattern, 'iu'));
+    } catch {
+      // Skip commands with unconvertible regexes — will fall back to label match
+    }
+  }
+}
+
 export function registerHoverProvider(): vscode.Disposable {
   return vscode.languages.registerHoverProvider(HUNT_SELECTOR, {
     provideHover(document, position) {
@@ -35,19 +50,9 @@ function findCommandForLine(line: string): CommandDefinition | undefined {
   const normalized = line.toUpperCase();
 
   return dslContract.commands.find((command) => {
-    // Use the command's regex when available for precise matching
-    if (command.regex) {
-      try {
-        // Convert Python named groups (?P<name>) to JS (?<name>) and backreferences (?P=name) to \k<name>
-        const jsPattern = command.regex
-          .replace(/\(\?P<(\w+)>/g, '(?<$1>')
-          .replace(/\(\?P=(\w+)\)/g, '\\k<$1>');
-        if (new RegExp(jsPattern, 'iu').test(line)) {
-          return true;
-        }
-      } catch {
-        // Fall through to label-based match
-      }
+    const compiled = compiledCommandRegexes.get(command.id);
+    if (compiled?.test(line)) {
+      return true;
     }
     return normalized.startsWith(command.label.toUpperCase());
   });

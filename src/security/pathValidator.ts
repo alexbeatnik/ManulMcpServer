@@ -71,7 +71,7 @@ export async function resolveInsideWorkspace(
       if (realRelative.startsWith('..') || path.isAbsolute(realRelative)) {
         throw new Error(`Access denied: path must be inside the workspace (${root})`);
       }
-      return { resolvedPath: path.resolve(root, relative) };
+      return { resolvedPath: realFile };
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
         ancestor = path.dirname(ancestor);
