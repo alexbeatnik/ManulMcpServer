@@ -40,7 +40,7 @@ The extension also syncs its user-scope `ManulMcpServer` entry in `User/mcp.json
 
 ## Requirements
 
-- VS Code or Antigravity 1.107 or newer
+- VS Code 1.107 or newer
 - `node` available on `PATH` (the managed user-scope MCP entry launches the bridge with `node -e`)
 - Python 3.10+ with [ManulEngine](https://pypi.org/project/manul-engine/) installed
 
