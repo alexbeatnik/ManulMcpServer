@@ -39,7 +39,7 @@ export function* iterateDslLines(dsl: string): Generator<DslLine> {
       continue;
     }
 
-    if (/^@(context|title|blueprint|tags|var|script|data|schedule):/iu.test(trimmed)) {
+    if (/^@(context|title|blueprint|tags|var|script|data|schedule|import|export):/iu.test(trimmed)) {
       yield { kind: 'metadata', raw, trimmed, lineNumber, insideHookBlock };
       continue;
     }

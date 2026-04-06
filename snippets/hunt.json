@@ -9,6 +9,11 @@
     "body": "NAVIGATE to ${1:https://example.com}",
     "description": "Navigate to a URL"
   },
+  "Manul Open App": {
+    "prefix": "openapp",
+    "body": "OPEN APP",
+    "description": "Attach to a desktop or Electron app window"
+  },
   "Manul Fill": {
     "prefix": "fill",
     "body": "Fill '${1:target}' field with '${2:value}'",
@@ -41,6 +46,26 @@
     "prefix": "waitfor",
     "body": "Wait for '${1:target}' to ${2|be visible,be hidden,disappear|}",
     "description": "Explicit wait for visibility state"
+  },
+  "Manul Wait For Response": {
+    "prefix": "waitresponse",
+    "body": "WAIT FOR RESPONSE \"${1:/api/path}\"",
+    "description": "Wait for a matching network response"
+  },
+  "Manul Import": {
+    "prefix": "import",
+    "body": "@import: ${1:BlockName} from ${2:source.hunt}",
+    "description": "Import STEP blocks from another hunt file"
+  },
+  "Manul Export": {
+    "prefix": "export",
+    "body": "@export: ${1:BlockName}",
+    "description": "Export STEP blocks for reuse in other hunt files"
+  },
+  "Manul Use": {
+    "prefix": "use",
+    "body": "USE ${1:BlockName}",
+    "description": "Expand an imported STEP block inline"
   },
   "Manul Setup Block": {
     "prefix": "setup",

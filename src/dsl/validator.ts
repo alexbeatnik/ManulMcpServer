@@ -38,9 +38,10 @@ const LINE_PATTERNS: ReadonlyArray<{ id: string; pattern: RegExp }> = [
   { id: 'set_var', pattern: /^SET\s+(?:\{[A-Za-z_]\w*\}|[A-Za-z_]\w*)\s*=\s*.+$/iu },
   { id: 'debug_vars', pattern: /^DEBUG\s+VARS$/iu },
   { id: 'debug', pattern: /^(?:DEBUG|PAUSE)$/iu },
+  { id: 'use_import', pattern: /^USE\s+[A-Za-z_][\w-]*$/iu },
   { id: 'done', pattern: /^DONE\.$/iu },
   { id: 'step', pattern: /^STEP\s+\d*\s*:\s*.+$/iu },
-  { id: 'metadata', pattern: /^@(context|title|blueprint|tags|var|script|data|schedule):\s*.+$/iu },
+  { id: 'metadata', pattern: /^@(context|title|blueprint|tags|var|script|data|schedule|import|export):\s*.+$/iu },
   { id: 'hook_marker', pattern: /^\[(?:SETUP|END SETUP|TEARDOWN|END TEARDOWN)\]$/iu },
   { id: 'hook_print', pattern: /^PRINT\s+".*"$/u },
 ];

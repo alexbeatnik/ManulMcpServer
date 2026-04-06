@@ -19,13 +19,13 @@ VS Code extension that turns [ManulEngine](https://github.com/alexbeatnik/ManulE
 1. Install the `.vsix` file:
 
 ```bash
-code --install-extension manul-mcp-server-0.0.4.vsix
+code --install-extension manul-mcp-server-0.0.5.vsix
 ```
 
 2. Install the runtime dependencies:
 
 ```bash
-pip install manul-engine==0.0.9.21
+pip install manul-engine==0.0.9.26
 playwright install
 ```
 
@@ -40,7 +40,7 @@ The extension also syncs its user-scope `ManulMcpServer` entry in `User/mcp.json
 
 ## Requirements
 
-- VS Code 1.110 or newer
+- VS Code or Antigravity 1.107 or newer
 - `node` available on `PATH` (the managed user-scope MCP entry launches the bridge with `node -e`)
 - Python 3.10+ with [ManulEngine](https://pypi.org/project/manul-engine/) installed
 
@@ -52,7 +52,7 @@ For a new machine, the extension is not fully self-contained. The `mcp.json` wir
 
 1. Install the extension.
 2. Install Python 3.10+.
-3. Install `manul-engine==0.0.9.21` into the Python environment you want the server to use.
+3. Install `manul-engine==0.0.9.26` into the Python environment you want the server to use.
 4. Run `playwright install`.
 5. Open the target workspace if you expect workspace-local `.venv` auto-detection.
 6. Reload VS Code.
@@ -98,6 +98,7 @@ Open **Settings** (Ctrl+,) and search for `manul`:
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `manul.pythonPath` | `python3` | Python executable. Leave as `python3` to auto-detect a local `.venv`. |
+| `manul.executablePath` | `''` | Absolute path to a custom browser or Electron executable. Use with `OPEN APP` for desktop automation. |
 | `manul.headless` | `false` | Run browser in headless mode. |
 | `manul.requestTimeoutMs` | `60000` | Timeout in ms for engine calls. |
 | `manul.logNormalizedDsl` | `true` | Log auto-corrected DSL in the output panel. |
@@ -133,7 +134,7 @@ Open **Settings** (Ctrl+,) and search for `manul`:
 ## Troubleshooting
 
 - `manul-engine not installed: No module named 'manul_engine'`
-    Install `manul-engine==0.0.9.21` into the Python interpreter selected by `manul.pythonPath`, or open the workspace so the extension can discover the local `.venv`.
+    Install `manul-engine==0.0.9.26` into the Python interpreter selected by `manul.pythonPath`, or open the workspace so the extension can discover the local `.venv`.
 - `node: command not found`
     The managed user-scope MCP entry launches the bridge with `node`, so Node.js must be available on `PATH`.
 - The MCP server starts but does not pick up the workspace `.venv`
@@ -191,6 +192,13 @@ Shortcuts are active when a `.hunt` file is focused in the editor.
 ---
 
 ## What's New
+
+### 0.0.5
+
+- **Compatibility:** Synced embedded DSL contract metadata to ManulEngine `0.0.9.26`.
+- **DSL:** Added support for `@import:`, `@export:`, and `USE` in validation, completion, hover docs, snippets, and syntax highlighting.
+- **Desktop automation:** Added `manul.executablePath` and propagated `MANUL_EXECUTABLE_PATH` through the MCP bridge into the bundled Python runner for `OPEN APP` flows.
+- **Release:** Updated extension/package versioning to `0.0.5`.
 
 ### 0.0.4
 

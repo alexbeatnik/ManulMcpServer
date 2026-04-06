@@ -20,6 +20,7 @@ async function main(): Promise<void> {
     sessionId: '',
     logNormalizedDsl: true,
     pythonPath: 'python3',
+    executablePath: '',
     headless: false,
     workspacePath: '',
     label: 'ManulMcpServer',

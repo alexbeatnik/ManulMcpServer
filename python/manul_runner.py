@@ -206,8 +206,13 @@ class ManulRunner:
         if self._session is not None:
             return
         self._headless = headless
+        executable_path = os.environ.get("MANUL_EXECUTABLE_PATH", "").strip() or None
         _log(f"Opening browser (headless={headless}) …")
-        self._session = ManulSession(headless=headless, disable_cache=True)
+        self._session = ManulSession(
+            headless=headless,
+            disable_cache=True,
+            executable_path=executable_path,
+        )
         await self._session.__aenter__()
         _log("Browser ready.")
 

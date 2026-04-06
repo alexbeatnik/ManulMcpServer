@@ -70,6 +70,10 @@ describe('validateStep', () => {
     expect(validateStep('SCAN PAGE')).toEqual([]);
   });
 
+  it('accepts USE import directive expansion', () => {
+    expect(validateStep('USE Login')).toEqual([]);
+  });
+
   it('rejects unknown command', () => {
     const issues = validateStep('FOOBAR something');
     expect(issues.length).toBe(1);
@@ -156,6 +160,8 @@ describe('isRecognizedLine', () => {
 
   it('recognizes metadata lines', () => {
     expect(isRecognizedLine('@context: some context')).toBe(true);
+    expect(isRecognizedLine('@import: Login from auth.hunt')).toBe(true);
+    expect(isRecognizedLine('@export: Login')).toBe(true);
   });
 
   it('recognizes hook markers', () => {

@@ -76,6 +76,7 @@ interface RunnerMessage {
 
 export interface PythonRunnerOptions {
   readonly pythonPath: string;
+  readonly executablePath: string;
   readonly runnerScriptPath: string;
   readonly timeoutMs: number;
   readonly headless: boolean;
@@ -205,6 +206,7 @@ export class PythonRunner {
           PYTHONIOENCODING: 'utf-8',
           PYTHONUTF8: '1',
           MANUL_WORKSPACE_PATH: this.options.workspacePath || process.cwd(),
+          MANUL_EXECUTABLE_PATH: this.options.executablePath,
         },
       });
 

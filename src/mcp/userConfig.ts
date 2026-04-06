@@ -18,6 +18,7 @@ export interface ManagedMcpServerOptions {
   readonly sessionId: string;
   readonly logNormalizedDsl: boolean;
   readonly pythonPath: string;
+  readonly executablePath: string;
   readonly headless: boolean;
   readonly workspacePath: string;
   readonly label: string;
@@ -113,6 +114,7 @@ const MANAGED_ENV_KEYS = new Set([
   'MANUL_REQUEST_TIMEOUT_MS',
   'MANUL_LOG_NORMALIZED_DSL',
   'MANUL_PYTHON_PATH',
+  'MANUL_EXECUTABLE_PATH',
   'MANUL_EXTENSION_PATH',
   'MANUL_MCP_LABEL',
   'MANUL_WORKSPACE_PATH',
@@ -149,6 +151,7 @@ function createManagedServerDefinition(
       MANUL_REQUEST_TIMEOUT_MS: String(options.requestTimeoutMs),
       MANUL_LOG_NORMALIZED_DSL: String(options.logNormalizedDsl),
       MANUL_PYTHON_PATH: options.pythonPath,
+      ...(options.executablePath ? { MANUL_EXECUTABLE_PATH: options.executablePath } : {}),
       ...(workspacePath ? { MANUL_WORKSPACE_PATH: workspacePath } : {}),
       MANUL_EXTENSION_PATH: options.extensionPath,
       MANUL_MCP_LABEL: options.label,

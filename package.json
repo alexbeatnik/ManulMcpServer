@@ -2,11 +2,11 @@
   "name": "manul-mcp-server",
   "displayName": "ManulMcpServer",
   "description": "VS Code extension that publishes ManulEngine as an MCP server and supports .hunt authoring.",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "manul-engine",
   "license": "Apache-2.0",
   "engines": {
-    "vscode": "^1.110.0"
+    "vscode": "^1.107.0"
   },
   "categories": [
     "AI",
@@ -146,6 +146,11 @@
           "default": "python3",
           "description": "Python executable path used by the bundled Manul runner. Leave as python3 to auto-discover a workspace-local .venv first."
         },
+        "manul.executablePath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to a custom browser or Electron executable. Use with the OPEN APP command for desktop automation."
+        },
         "manul.headless": {
           "type": "boolean",
           "default": false,
@@ -175,7 +180,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.17.57",
-    "@types/vscode": "^1.110.0",
+    "@types/vscode": "1.107.0",
     "@vscode/vsce": "^3.2.2",
     "typescript": "^5.8.3",
     "vitest": "^4.1.2"

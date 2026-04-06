@@ -107,7 +107,7 @@ function correctTypos(step: string, fixes: string[]): string {
 }
 
 function looksLikeDsl(step: string): boolean {
-  return /^(?:@\w|\[(?:SETUP|END SETUP|TEARDOWN|END TEARDOWN)\]|STEP\s+\d*\s*:|DONE\.|NAVIGATE\b|OPEN APP\b|WAIT\b|VERIFY\b|DEBUG\b|DEBUG VARS\b|EXTRACT\b|CALL PYTHON\b|SET\b|Click\b|DOUBLE CLICK\b|Fill\b|Type\b|Select\b|Check\b|Uncheck\b|HOVER\b|Drag\b|RIGHT CLICK\b|PRESS\b|MOCK\b|SCAN PAGE\b)/u.test(
+  return /^(?:@\w|\[(?:SETUP|END SETUP|TEARDOWN|END TEARDOWN)\]|STEP\s+\d*\s*:|DONE\.|NAVIGATE\b|OPEN APP\b|WAIT\b|VERIFY\b|DEBUG\b|DEBUG VARS\b|EXTRACT\b|CALL PYTHON\b|SET\b|USE\b|Click\b|DOUBLE CLICK\b|Fill\b|Type\b|Select\b|Check\b|Uncheck\b|HOVER\b|Drag\b|RIGHT CLICK\b|PRESS\b|MOCK\b|SCAN PAGE\b)/u.test(
     step,
   );
 }

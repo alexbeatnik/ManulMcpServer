@@ -8,6 +8,7 @@ export function getRuntimeSettingsFromEnv(env: NodeJS.ProcessEnv = process.env):
     sessionId: (env.MANUL_SESSION_ID ?? '').trim(),
     logNormalizedDsl: normalizeBoolean(env.MANUL_LOG_NORMALIZED_DSL, true),
     pythonPath: (env.MANUL_PYTHON_PATH ?? '').trim() || DEFAULT_PYTHON_PATH,
+    executablePath: (env.MANUL_EXECUTABLE_PATH ?? '').trim(),
     headless: normalizeBoolean(env.MANUL_HEADLESS, false),
     workspacePath: (env.MANUL_WORKSPACE_PATH ?? '').trim(),
     extensionPath: (env.MANUL_EXTENSION_PATH ?? '').trim(),

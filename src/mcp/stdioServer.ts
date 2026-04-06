@@ -22,7 +22,7 @@ interface ToolDefinition {
 type McpToolResult = CallToolResult;
 type McpTaskResult = CreateTaskResult;
 
-const SERVER_VERSION = '0.0.4';
+const SERVER_VERSION = '0.0.5';
 const label = getMcpServerLabelFromEnv();
 
 const logger = {
@@ -49,6 +49,7 @@ const runnerScriptPath = path.join(__dirname, '..', '..', 'python', 'manul_runne
 const pythonRunner = new PythonRunner(
   {
     pythonPath: runtimeSettings.pythonPath,
+    executablePath: runtimeSettings.executablePath,
     runnerScriptPath,
     timeoutMs: runtimeSettings.requestTimeoutMs,
     headless: runtimeSettings.headless,
