@@ -45,11 +45,12 @@ async function createServerDefinition(context: vscode.ExtensionContext): Promise
       MANUL_REQUEST_TIMEOUT_MS: String(settings.requestTimeoutMs),
       MANUL_LOG_NORMALIZED_DSL: String(settings.logNormalizedDsl),
       MANUL_PYTHON_PATH: settings.pythonPath,
+      MANUL_EXECUTABLE_PATH: settings.executablePath,
       MANUL_HEADLESS: String(settings.headless),
       MANUL_WORKSPACE_PATH: settings.workspacePath,
       MANUL_EXTENSION_PATH: context.extensionPath,
       MANUL_MCP_LABEL: label,
     },
-    '0.0.3',
+    '0.0.5',
   );
 }

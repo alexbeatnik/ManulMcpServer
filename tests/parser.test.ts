@@ -17,6 +17,13 @@ describe('iterateDslLines', () => {
     expect(lines[0].kind).toBe('metadata');
   });
 
+  it('classifies import and export metadata', () => {
+    const importLines = [...iterateDslLines('@import: Login from auth.hunt')];
+    const exportLines = [...iterateDslLines('@export: Login')];
+    expect(importLines[0].kind).toBe('metadata');
+    expect(exportLines[0].kind).toBe('metadata');
+  });
+
   it('classifies step headers', () => {
     const lines = [...iterateDslLines('STEP 1: Navigate')];
     expect(lines[0].kind).toBe('step_header');

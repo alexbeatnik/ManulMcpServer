@@ -28,6 +28,7 @@ export function registerUserMcpConfigSync(context: vscode.ExtensionContext, logg
         sessionId: configuredSessionId,
         logNormalizedDsl: settings.logNormalizedDsl,
         pythonPath: settings.pythonPath,
+        executablePath: settings.executablePath,
         headless: settings.headless,
         workspacePath: settings.workspacePath,
         label,

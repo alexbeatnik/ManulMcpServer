@@ -42,6 +42,15 @@ DONE.`;
   it('returns empty array for empty input', () => {
     expect(extractRunnableSteps('')).toEqual([]);
   });
+
+  it('ignores import and export metadata lines', () => {
+    const dsl = `@import: Login from auth.hunt
+@export: Login
+STEP 1: Reuse
+    USE Login
+DONE.`;
+    expect(extractRunnableSteps(dsl)).toEqual(['USE Login']);
+  });
 });
 
 describe('normalizeNaturalLanguageStep', () => {
@@ -62,9 +71,44 @@ describe('normalizeNaturalLanguageStep', () => {
     expect(result.normalized).toContain('test@example.com');
   });
 
+  it('normalizes type command', () => {
+    const result = normalizeNaturalLanguageStep('type hello into search');
+    expect(result.normalized).toBe("Type 'hello' into the 'search' field");
+  });
+
   it('normalizes navigate command', () => {
     const result = normalizeNaturalLanguageStep('go to https://example.com');
     expect(result.normalized).toBe('NAVIGATE to https://example.com');
+  });
+
+  it('normalizes open app navigation', () => {
+    const result = normalizeNaturalLanguageStep('open app');
+    expect(result.normalized).toBe('OPEN APP');
+  });
+
+  it('normalizes verify negative command', () => {
+    const result = normalizeNaturalLanguageStep('verify login failed is not present');
+    expect(result.normalized).toBe("VERIFY that 'login failed' is NOT present");
+  });
+
+  it('normalizes select command', () => {
+    const result = normalizeNaturalLanguageStep('choose Admin from role');
+    expect(result.normalized).toBe("Select 'Admin' from the 'role' dropdown");
+  });
+
+  it('normalizes hover command', () => {
+    const result = normalizeNaturalLanguageStep('hover profile menu');
+    expect(result.normalized).toBe("HOVER over the 'profile'");
+  });
+
+  it('normalizes check and uncheck commands', () => {
+    expect(normalizeNaturalLanguageStep('check terms').normalized).toBe("Check the checkbox for 'terms'");
+    expect(normalizeNaturalLanguageStep('uncheck newsletter').normalized).toBe("Uncheck the checkbox for 'newsletter'");
+  });
+
+  it('preserves USE directive as DSL', () => {
+    const result = normalizeNaturalLanguageStep('USE Login');
+    expect(result.normalized).toBe('USE Login');
   });
 
   it('corrects typos', () => {
@@ -87,5 +131,14 @@ describe('normalizeGoal', () => {
   it('returns empty steps for empty goal', () => {
     const result = normalizeGoal('');
     expect(result.steps).toEqual([]);
+  });
+
+  it('splits lines and punctuation into multiple steps', () => {
+    const result = normalizeGoal('open app. click Login\nfill Username with admin');
+    expect(result.steps).toEqual([
+      'OPEN APP',
+      "Click the 'Login' button",
+      "Fill 'Username' field with 'admin'",
+    ]);
   });
 });

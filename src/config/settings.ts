@@ -11,6 +11,7 @@ export interface ManulExtensionSettings {
   readonly sessionId: string;
   readonly logNormalizedDsl: boolean;
   readonly pythonPath: string;
+  readonly executablePath: string;
   readonly headless: boolean;
   readonly workspacePath: string;
   readonly extensionPath: string;
@@ -30,6 +31,7 @@ export async function getExtensionSettings(
     sessionId,
     logNormalizedDsl: configuration.get<boolean>('logNormalizedDsl', true),
     pythonPath: configuration.get<string>('pythonPath', DEFAULT_PYTHON_PATH).trim() || DEFAULT_PYTHON_PATH,
+    executablePath: configuration.get<string>('executablePath', '').trim(),
     headless: configuration.get<boolean>('headless', false),
     workspacePath: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '',
     extensionPath: context.extensionPath,
