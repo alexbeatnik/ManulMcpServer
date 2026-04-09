@@ -24,6 +24,7 @@ When using ManulMcpServer tools (`manul_run_step`, `manul_run_hunt_file`, etc.) 
 - For flows with multiple actions and `VERIFY` checks, prefer `manul_run_hunt` or `manul_run_goal`.
 - After `NAVIGATE` and after state-changing clicks, prefer `manul_scan_page` when you need the exact current identifiers before choosing the next step.
 - If a `VERIFY that 'text' is present` step fails but `manul_scan_page` shows a nearby stable identifier, adapt the verify target to the actual page text instead of reporting the whole flow as broken.
+- Use `manul_read_page_text` when you need to read prices, labels, headings, or any static text that does not appear in the scan results.
 
 ## Hunt File Format Rules
 
@@ -32,10 +33,11 @@ When using ManulMcpServer tools (`manul_run_step`, `manul_run_hunt_file`, etc.) 
 - `DONE.` must be flush-left
 - Action lines inside a STEP are indented with 4 spaces
 
-## DSL Command Reference
+## DSL Command Reference (v0.0.9.27)
 
 ### Navigation
 - `NAVIGATE to 'https://example.com'` — open URL, wait for DOM
+- `OPEN APP` — attach to an Electron/desktop app window (requires executable_path)
 - `SCROLL DOWN` — scroll one viewport; `SCROLL DOWN inside the 'container'` — scroll a specific container
 
 ### Clicking
@@ -52,6 +54,8 @@ When using ManulMcpServer tools (`manul_run_step`, `manul_run_hunt_file`, etc.) 
 - `Select 'Option' from the 'Target' dropdown`
 - `PRESS ENTER` — submit focused element
 - `PRESS Escape` / `PRESS Control+A` — any key or combo
+- `PRESS Key on 'Target'` — press key on a specific element
+- `UPLOAD 'file_path' to 'Target'` — file upload to a file-input element
 
 ### Assertions (VERIFY)
 - `VERIFY that 'text' is present` — text or element visible on page ✅ most common
@@ -61,6 +65,8 @@ When using ManulMcpServer tools (`manul_run_step`, `manul_run_hunt_file`, etc.) 
 - `VERIFY SOFTLY that 'text' is present` — non-fatal, continues on failure
 - `Verify 'Element' field has value 'Expected'` — strict input value check
 - `Verify 'Element' field has text 'Expected'` — strict inner text check
+- `Verify 'Element' field has placeholder 'Expected'` — strict placeholder check
+- `VERIFY VISUAL 'Element'` — take screenshot and compare against baseline
 
 ### Waiting
 - `WAIT 2` — sleep N seconds
@@ -72,11 +78,42 @@ When using ManulMcpServer tools (`manul_run_step`, `manul_run_hunt_file`, etc.) 
 - `SET {variable} = value` — set variable inline
 - `@var: {key} = value` — file-level variable declaration
 
+### Network
+- `MOCK GET "url_pattern" with 'mock_file'` — intercept network requests (GET/POST/PUT/PATCH/DELETE)
+
+### Python Integration
+- `CALL PYTHON module.function` — execute a synchronous Python function
+- `CALL PYTHON module.function with args: "arg1" "arg2" into {result}` — with arguments and capture
+- `@script: {alias} = scripts.helpers` — declare Python helper alias
+
+### Utility
+- `SCAN PAGE` — scan current page for elements; `SCAN PAGE into {filename}` — write to file
+- `DEBUG` / `PAUSE` — pause execution
+- `DEBUG VARS` — print all runtime variables
+
+### Structure
+- `STEP N: Description` — group actions into a named block
+- `USE BlockName` — expand an imported STEP block
+- `DONE.` — explicitly end the mission
+
 ### Contextual Qualifiers (disambiguation)
 - `Click the 'Edit' button NEAR 'John Doe'` — disambiguate repeated elements
 - `Click the 'Logo' link ON HEADER` — restrict to header/nav area
 - `Click the 'Terms' link ON FOOTER` — restrict to footer area
 - `Click the 'Delete' button INSIDE 'Actions' row with 'John'` — restrict to a table row
+
+### Metadata Headers
+- `@context:` — strategic context for engine and LLM planner
+- `@title:` — short display name for the suite
+- `@tags: smoke, regression` — run tags for CLI filtering
+- `@data: data/file.json` — data-driven testing (JSON/CSV)
+- `@schedule: daily at 09:00` — daemon mode schedule
+- `@import: Login from lib/auth.hunt` — import STEP blocks
+- `@export: Login, Logout` — declare importable blocks
+
+### Hook Blocks
+- `[SETUP]` / `[END SETUP]` — runs before browser launch; CALL PYTHON and PRINT only
+- `[TEARDOWN]` / `[END TEARDOWN]` — cleanup after mission; runs only if SETUP succeeded
 
 ## VERIFY After Every Action
 

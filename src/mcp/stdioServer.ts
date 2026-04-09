@@ -22,7 +22,7 @@ interface ToolDefinition {
 type McpToolResult = CallToolResult;
 type McpTaskResult = CreateTaskResult;
 
-const SERVER_VERSION = '0.0.5';
+const SERVER_VERSION = '0.0.6';
 const label = getMcpServerLabelFromEnv();
 
 const logger = {
