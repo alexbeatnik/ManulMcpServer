@@ -134,7 +134,7 @@ Open **Settings** (Ctrl+,) and search for `manul`:
 ## Troubleshooting
 
 - `manul-engine not installed: No module named 'manul_engine'`
-    Install `manul-engine==0.0.9.26` into the Python interpreter selected by `manul.pythonPath`, or open the workspace so the extension can discover the local `.venv`.
+    Install `manul-engine==0.0.9.27` into the Python interpreter selected by `manul.pythonPath`, or open the workspace so the extension can discover the local `.venv`.
 - `node: command not found`
     The managed user-scope MCP entry launches the bridge with `node`, so Node.js must be available on `PATH`.
 - The MCP server starts but does not pick up the workspace `.venv`
@@ -197,7 +197,7 @@ Shortcuts are active when a `.hunt` file is focused in the editor.
 
 - **Compatibility:** Synced embedded DSL contract metadata to ManulEngine `0.0.9.27`.
 - **Docs:** Added `contracts/MANUL_MCP_AGENT_CONTRACT.md` — machine-readable contract for AI agents consuming ManulEngine via MCP (tool schemas, DSL reference, workflow guidelines, response shapes, security constraints).
-- **Docs:** Updated `copilot-instructions.md` with complete v0.0.9.27 DSL reference including `OPEN APP`, `UPLOAD`, `MOCK`, `VERIFY VISUAL`, strict placeholder/value assertions, `CALL PYTHON`, `SCAN PAGE`, `DEBUG VARS`, metadata headers (`@import:`, `@export:`, `@data:`, `@schedule:`), and hook blocks (`[SETUP]`/`[TEARDOWN]`).
+- **Docs:** Updated `.github/copilot-instructions.md` with complete v0.0.9.27 DSL reference including `OPEN APP`, `UPLOAD`, `MOCK`, `VERIFY VISUAL`, strict placeholder/value assertions, `CALL PYTHON`, `SCAN PAGE`, `DEBUG VARS`, metadata headers (`@import:`, `@export:`, `@data:`, `@schedule:`), and hook blocks (`[SETUP]`/`[TEARDOWN]`).
 - **Release:** Updated extension/package versioning to `0.0.6`.
 
 ### 0.0.5

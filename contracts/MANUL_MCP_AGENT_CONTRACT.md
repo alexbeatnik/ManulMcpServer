@@ -12,7 +12,7 @@
   "serverVersion": "0.0.6",
   "serverName": "manul-mcp-server",
   "protocol": "Model Context Protocol (MCP) over stdio",
-  "generatedFrom": "ManulMcpServer/src/mcp/stdioServer.ts, ManulMcpServer/src/mcp/server.ts, ManulMcpServer/contracts/MANUL_DSL_CONTRACT.md",
+  "generatedFrom": "src/mcp/stdioServer.ts, src/mcp/server.ts, src/config/contract.ts",
 
   "overview": {
     "description": "ManulEngine is a deterministic, DSL-first Web & Desktop Automation Runtime backed by Playwright. This MCP server exposes ManulEngine capabilities as tools that AI agents can call to automate browsers, run E2E tests, execute RPA workflows, and build .hunt automation scripts. The browser session is persistent — it opens on first use and stays alive across tool calls until shutdown.",
@@ -45,7 +45,7 @@
         "Accepts raw DSL: \"NAVIGATE to https://example.com\".",
         "After NAVIGATE, consider calling manul_scan_page to discover page elements before the next step."
       ],
-      "errorBehavior": "Returns isError=true with error message on failure. Step failures do NOT close the browser."
+      "errorBehavior": "Engine/step failures are returned in the normal tool result with response.ok=false and status/data describing the failure; only tool-level problems such as validation or handler exceptions return isError=true. Step failures do NOT close the browser."
     },
     {
       "name": "manul_run_goal",
@@ -265,7 +265,7 @@
 
   "dslCommandReference": {
     "version": "0.0.9.27",
-    "description": "Complete DSL command set recognized by the ManulEngine parser. Use these commands as input to manul_run_step, manul_run_hunt, and in .hunt file content.",
+    "description": "DSL command set recognized by the ManulEngine parser. Use these commands as input to manul_run_step, manul_run_hunt, and in .hunt file content.",
 
     "navigation": [
       { "command": "NAVIGATE to 'https://example.com'", "description": "Open URL, wait for DOM settlement." },
@@ -281,7 +281,9 @@
       { "command": "DOUBLE CLICK the 'Label'", "description": "Double-click an element." },
       { "command": "RIGHT CLICK 'Label'", "description": "Right-click to open context menu." },
       { "command": "Check the checkbox for 'Label'", "description": "Check a checkbox." },
-      { "command": "Uncheck the checkbox for 'Label'", "description": "Uncheck a checkbox." }
+      { "command": "Uncheck the checkbox for 'Label'", "description": "Uncheck a checkbox." },
+      { "command": "HOVER over the 'Label'", "description": "Hover over an element." },
+      { "command": "Drag 'Source' and drop it into 'Destination'", "description": "Drag-and-drop between two elements." }
     ],
 
     "input": [
@@ -328,7 +330,7 @@
 
     "pythonIntegration": [
       { "command": "CALL PYTHON module.function", "description": "Execute a synchronous Python function." },
-      { "command": "CALL PYTHON module.function \"arg1\" into {result}", "description": "Call with arguments and capture return value." }
+      { "command": "CALL PYTHON module.function with args: \"arg1\" into {result}", "description": "Call with arguments and capture return value." }
     ],
 
     "utility": [
@@ -364,7 +366,8 @@
 
     "hookBlocks": [
       { "block": "[SETUP] ... [END SETUP]", "description": "Runs before browser launch. CALL PYTHON and PRINT only. Failure marks mission as broken." },
-      { "block": "[TEARDOWN] ... [END TEARDOWN]", "description": "Cleanup after mission. Runs only if SETUP succeeded." }
+      { "block": "[TEARDOWN] ... [END TEARDOWN]", "description": "Cleanup after mission. Runs only if SETUP succeeded." },
+      { "command": "PRINT \"message with {vars}\"", "description": "Variable-interpolated console output. Valid only inside [SETUP]/[TEARDOWN] blocks." }
     ],
 
     "comments": {

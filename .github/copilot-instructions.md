@@ -83,7 +83,7 @@ When using ManulMcpServer tools (`manul_run_step`, `manul_run_hunt_file`, etc.) 
 
 ### Python Integration
 - `CALL PYTHON module.function` — execute a synchronous Python function
-- `CALL PYTHON module.function "arg1" "arg2" into {result}` — with arguments and capture
+- `CALL PYTHON module.function with args: "arg1" "arg2" into {result}` — with arguments and capture
 - `@script: {alias} = scripts.helpers` — declare Python helper alias
 
 ### Utility
