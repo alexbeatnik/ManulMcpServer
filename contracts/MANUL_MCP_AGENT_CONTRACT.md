@@ -71,7 +71,7 @@
         "Best for multi-action flows described in natural language.",
         "Automatically resets the hunt proposal accumulator before execution.",
         "After completion, call manul_save_hunt to persist the generated .hunt file.",
-        "Goal text is split on newlines, periods, 'then', and 'and then'."
+        "Goal text is split on newlines, periods, and 'then'; avoid relying on 'and then' phrasing in goals."
       ]
     },
     {
