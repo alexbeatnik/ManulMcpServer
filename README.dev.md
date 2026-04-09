@@ -107,7 +107,7 @@ cd ../ManulMcpServer
 # Optional: create workspace venv (auto-detected by PythonRunner)
 python3 -m venv .venv
 source .venv/bin/activate
-pip install manul-engine==0.0.9.26
+pip install manul-engine==0.0.9.27
 playwright install
 ```
 
@@ -132,7 +132,7 @@ npm run watch
 npm run package
 
 # Install into VS Code
-code --install-extension manul-mcp-server-0.0.5.vsix --force
+code --install-extension manul-mcp-server-0.0.6.vsix --force
 
 # Lifecycle hooks used by installed builds
 npm run vscode:install
