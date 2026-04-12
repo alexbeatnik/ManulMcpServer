@@ -6,73 +6,27 @@
 [![MCP Server](https://img.shields.io/visual-studio-marketplace/v/manul-engine.manul-mcp-server?label=MCP%20Server&logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=manul-engine.manul-mcp-server)
 [![Status: Alpha](https://img.shields.io/badge/status-alpha-d97706)](#status)
 
-VS Code extension that turns [ManulEngine](https://github.com/alexbeatnik/ManulEngine) into a native MCP server available directly in GitHub Copilot chat. Write `.hunt` automation scripts, run them from the editor, or invoke them through Copilot using natural language.
+**Bridge between GitHub Copilot and deterministic browser automation.** ManulMcpServer is a VS Code extension that exposes [ManulEngine](https://github.com/alexbeatnik/ManulEngine) as a native [MCP](https://modelcontextprotocol.io/) server — giving Copilot Chat (and any MCP-compatible agent) the ability to drive real browsers, run `.hunt` test scripts, and generate automation from natural language, all inside your existing development workflow.
 
-## Status
-
-> **Alpha.** Developed alongside ManulEngine — both projects are in active development. API and file formats are subject to change.
+> **Status: Alpha.** Actively developed alongside ManulEngine. APIs and file formats may evolve.
 
 ---
 
-## Installation
+## Why ManulMcpServer
 
-1. Install the `.vsix` file:
-
-```bash
-code --install-extension manul-mcp-server-0.0.7.vsix
-```
-
-2. Install the runtime dependencies:
-
-```bash
-pip install manul-engine==0.0.9.28
-playwright install
-```
-
-3. If you want the MCP runner to use a workspace-local `.venv`, open that folder in VS Code and leave `manul.pythonPath` at `python3`, or point `manul.pythonPath` at the exact interpreter you want.
-
-4. **Reload Window** (Ctrl+Shift+P → `Developer: Reload Window`).
-
-After reload, `ManulMcpServer` appears in the **MCP Servers** panel and Copilot chat gains the Manul tools automatically.
-The extension also syncs its user-scope `ManulMcpServer` entry in `User/mcp.json` during install and activation, and removes that entry on uninstall. That managed entry uses `node -e` bootstrap logic to resolve the newest installed extension directory automatically, so upgrades do not leave stale versioned paths behind.
+- **Deterministic automation inside Copilot Chat.** Copilot gains browser control backed by ManulEngine's heuristic element resolver — no LLM required for element targeting.
+- **Natural language to executable DSL.** Say *"log in to SauceDemo and verify the inventory page"* — the server normalizes it into `.hunt` steps, runs them, and returns a replayable script.
+- **Editor-first authoring.** Syntax highlighting, IntelliSense, hover docs, inline diagnostics, and one-click run for `.hunt` files.
+- **CI/CD ready.** The same `.hunt` scripts that run in Copilot Chat can run headless in your pipeline with `manul <path>`.
+- **Explainable and auditable.** Every action is a readable DSL line, every element resolution scores 0.0–1.0 with an explain mode — no black-box clicks.
 
 ---
 
-## Requirements
+## Quick Demo
 
-- VS Code 1.107 or newer
-- `node` available on `PATH` (the managed user-scope MCP entry launches the bridge with `node -e`)
-- Python 3.10+ with [ManulEngine](https://pypi.org/project/manul-engine/) installed
+### 1. Write a `.hunt` file
 
----
-
-## First Run Checklist
-
-For a new machine, the extension is not fully self-contained. The `mcp.json` wiring is automatic now, but the runtime dependencies are still external:
-
-1. Install the extension.
-2. Install Python 3.10+.
-3. Install `manul-engine==0.0.9.28` into the Python environment you want the server to use.
-4. Run `playwright install`.
-5. Open the target workspace if you expect workspace-local `.venv` auto-detection.
-6. Reload VS Code.
-
----
-
-## What It Does
-
-- **MCP server** — registers `ManulMcpServer` in VS Code's MCP Servers view so Copilot can drive a real browser via chat
-- **Hunt language support** — syntax highlighting, IntelliSense, hover docs, and inline diagnostics for `.hunt` files
-- **Run from editor** — run button in the editor title bar, command palette, and status bar for `.hunt` files
-- **Natural language input** — type `click login` or `fill email with test@example.com` and the extension normalizes it to proper DSL before sending to the engine
-
----
-
-## Quick Start
-
-Create a file with the `.hunt` extension and write your automation:
-
-```
+```hunt
 @context: Login flow smoke test
 @title: SauceDemo Login
 
@@ -81,102 +35,169 @@ STEP 1: Login
     VERIFY that 'Username' is present
     Fill 'Username' field with 'standard_user'
     Fill 'Password' field with 'secret_sauce'
-    Click the 'login-button' button
+    Click the 'Login' button
     VERIFY that 'Sauce Labs Backpack' is present
 
 DONE.
 ```
 
-Click the **▷** button in the editor title bar to run it.
+### 2. Run from the editor
+
+Click the **▷** button in the editor title bar, or press `Ctrl+Shift+R` (`Cmd+Shift+R` on Mac).
+
+### 3. Run from Copilot Chat
+
+Open Copilot Chat and use the MCP tools directly:
+
+```
+# Run a single step
+@manul Run step: NAVIGATE to 'https://www.saucedemo.com/'
+
+# Run a full goal — Copilot calls manul_run_goal under the hood
+@manul Log in to SauceDemo with standard_user / secret_sauce
+       and verify the inventory page loads
+
+# Scan the page after navigation
+@manul Scan the current page for interactive elements
+```
+
+Copilot uses `manul_run_step` for individual actions, `manul_run_goal` for multi-step flows, and `manul_scan_page` to discover page elements. After a goal run, ask Copilot to save the generated `.hunt` file — it calls `manul_save_hunt` to write it to `tests/`.
+
+---
+
+## Integration Patterns
+
+### Copilot Chat (primary workflow)
+
+ManulMcpServer registers itself as an MCP server automatically. Copilot Chat discovers the Manul tools and can:
+
+- Run individual DSL steps or natural-language actions (`manul_run_step`)
+- Execute multi-step goals and produce replayable `.hunt` files (`manul_run_goal`)
+- Read page content and discover interactive elements (`manul_scan_page`, `manul_read_page_text`)
+- Validate and normalize DSL without execution (`manul_validate_hunt`, `manul_normalize_step`)
+
+### CI/CD pipelines
+
+`.hunt` scripts generated via Copilot are plain text — commit them to your repo and run headless in CI:
+
+```bash
+pip install manul-engine==0.0.9.28
+playwright install chromium
+manul tests/ --headless --html-report
+```
+
+The CLI produces exit code 0 on pass, 1 on failure, and optionally generates a self-contained HTML report.
+
+### Other MCP clients
+
+Any MCP-compatible agent or client can connect to ManulMcpServer's stdio bridge. The server advertises 11 tools with full JSON Schema input definitions, making integration straightforward for custom agent harnesses, product dashboards, or internal tooling.
+
+---
+
+## Installation
+
+### 1. Install the extension
+
+```bash
+code --install-extension manul-mcp-server-0.0.7.vsix
+```
+
+Or install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=manul-engine.manul-mcp-server).
+
+### 2. Install runtime dependencies
+
+```bash
+pip install manul-engine==0.0.9.28
+playwright install
+```
+
+### 3. Reload VS Code
+
+`Ctrl+Shift+P` → **Developer: Reload Window**
+
+After reload, `ManulMcpServer` appears in the MCP Servers panel and Copilot Chat gains the Manul tools automatically.
+
+### Prerequisites
+
+- **VS Code** 1.107+
+- **Node.js** on `PATH` (the managed MCP entry launches the bridge with `node -e`)
+- **Python** 3.10+ with `manul-engine` installed
+- **Playwright browsers** (`playwright install`)
+
+> **Workspace `.venv` detection:** Open the target workspace folder first, or set `manul.pythonPath` to the exact interpreter path.
 
 ---
 
 ## Configuration
 
-Open **Settings** (Ctrl+,) and search for `manul`:
+Open Settings (`Ctrl+,`) and search for `manul`:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `manul.pythonPath` | `python3` | Python executable. Leave as `python3` to auto-detect a local `.venv`. |
-| `manul.executablePath` | `''` | Absolute path to a custom browser or Electron executable. Use with `OPEN APP` for desktop automation. |
-| `manul.headless` | `false` | Run browser in headless mode. |
-| `manul.requestTimeoutMs` | `60000` | Timeout in ms for engine calls. |
+| `manul.pythonPath` | `python3` | Python interpreter. Auto-discovers workspace `.venv` when left as default. |
+| `manul.executablePath` | `''` | Path to a custom browser or Electron app. Use with `OPEN APP` for desktop automation. |
+| `manul.headless` | `false` | Run the browser without a visible window. |
+| `manul.apiBaseUrl` | `http://127.0.0.1:8000` | ManulEngine HTTP API URL for editor Run commands. |
+| `manul.requestTimeoutMs` | `60000` | Timeout for engine calls (ms). |
 | `manul.logNormalizedDsl` | `true` | Log auto-corrected DSL in the output panel. |
-| `manul.mcpServerLabel` | `ManulMcpServer` | Label shown in the MCP Servers view. |
-| `manul.apiBaseUrl` | `http://127.0.0.1:8000` | Base URL for the ManulEngine HTTP API used by the editor **Run Step** and **Run Hunt File** commands. |
+| `manul.mcpServerLabel` | `ManulMcpServer` | Label in the MCP Servers view. |
 
-> **Note:** The editor title bar **Run** commands (`Run Step`, `Run Hunt File`) connect to the ManulEngine HTTP API at `manul.apiBaseUrl`. You need a running ManulEngine server for those commands to work:
-> ```bash
-> manul serve
-> ```
-> MCP tools (`manul_run_step`, `manul_run_goal`, etc.) use the bundled Python runner directly and do **not** require a separate HTTP server.
+Example `settings.json`:
+
+```jsonc
+{
+  "manul.pythonPath": "/home/user/project/.venv/bin/python",
+  "manul.headless": true,
+  "manul.executablePath": "/opt/my-electron-app/app"
+}
+```
+
+> **Two execution paths:** MCP tools (`manul_run_step`, `manul_run_goal`, etc.) use the **bundled Python runner** directly — no server needed. Editor title bar **Run** commands use the ManulEngine **HTTP API** at `manul.apiBaseUrl` (start it with `manul serve`).
 
 ---
 
-## MCP Tools Available in Copilot Chat
+## MCP Tools Reference
 
-| Tool | What it does |
+| Tool | Description |
 |------|-------------|
-| `manul_run_step` | Run a single DSL step or natural-language action in the browser |
-| `manul_run_goal` | Convert a natural-language goal into steps and execute them |
-| `manul_run_hunt` | Run a full `.hunt` document passed as text |
+| `manul_run_step` | Run a single DSL step or natural-language action in the live browser |
+| `manul_run_goal` | Convert a goal into DSL steps, execute them, return a `.hunt` proposal |
+| `manul_run_hunt` | Validate and execute a `.hunt` document passed as text |
 | `manul_run_hunt_file` | Run a `.hunt` file from disk |
-| `manul_validate_hunt` | Validate a `.hunt` document without running it |
-| `manul_normalize_step` | Preview how a step will be normalized to DSL |
-| `manul_get_state` | Get current browser and session state |
+| `manul_validate_hunt` | Validate `.hunt` syntax and return diagnostics — no execution |
+| `manul_normalize_step` | Preview how natural language maps to canonical DSL |
 | `manul_preview_goal` | Preview goal-to-DSL conversion without execution |
 | `manul_scan_page` | List all interactive elements on the current page |
 | `manul_read_page_text` | Read all visible text content from the current page |
-| `manul_save_hunt` | Save a `.hunt` file to disk |
+| `manul_get_state` | Query browser status, engine version, and session state |
+| `manul_save_hunt` | Save a `.hunt` file to disk (workspace-jailed) |
+
+All tools use synchronous request/response. The browser session is persistent — it opens on first use and stays alive across tool calls for inspect/retry.
 
 ---
 
 ## Troubleshooting
 
-- `manul-engine not installed: No module named 'manul_engine'`
-    Install `manul-engine==0.0.9.27` into the Python interpreter selected by `manul.pythonPath`, or open the workspace so the extension can discover the local `.venv`.
-- `node: command not found`
-    The managed user-scope MCP entry launches the bridge with `node`, so Node.js must be available on `PATH`.
-- The MCP server starts but does not pick up the workspace `.venv`
-    Open the project folder in VS Code or set `manul.pythonPath` explicitly to the desired interpreter.
-- The editor **Run Step** / **Run Hunt File** commands fail while MCP chat tools work
-    That is expected when `manul serve` is not running. Editor commands use the HTTP API; MCP tools use the bundled Python runner.
+| Problem | Fix |
+|---------|-----|
+| `No module named 'manul_engine'` | Install `manul-engine` into the interpreter selected by `manul.pythonPath`, or open the workspace so `.venv` is discovered. |
+| `node: command not found` | The MCP bridge requires Node.js on `PATH`. Install Node.js and reload VS Code. |
+| MCP server ignores workspace `.venv` | Open the project folder in VS Code, or set `manul.pythonPath` explicitly. |
+| Editor **Run** commands fail, but MCP tools work | Editor commands need `manul serve` running. MCP tools use the bundled runner directly. |
+| Browser does not open | Check `manul.headless` is `false`. Ensure `playwright install` has been run. |
 
 ---
 
-## ManulEngine
+## Ecosystem
 
-This extension requires **ManulEngine** — the deterministic web and desktop automation runtime that powers the `.hunt` DSL.
+ManulMcpServer is one layer of the Manul automation stack:
 
-| | |
-|---|---|
-| PyPI | [![PyPI](https://img.shields.io/pypi/v/manul-engine?label=PyPI&logo=pypi)](https://pypi.org/project/manul-engine/) |
-| Manul Engine Extension | [![Manul Engine Extension](https://img.shields.io/visual-studio-marketplace/v/manul-engine.manul-engine?label=Manul%20Engine%20Extension&logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=manul-engine.manul-engine) |
-| GitHub | [alexbeatnik/ManulEngine](https://github.com/alexbeatnik/ManulEngine) |
-| Status | Alpha — battle-tested on real-world DOMs, APIs may evolve |
-
----
-
-## Hunt File Format
-
-```
-@context: <context for the AI planner>
-@title: <suite name>
-
-STEP 1: <description>
-    NAVIGATE to 'https://...'
-    VERIFY that 'element' is present
-    Fill 'Field' field with 'value'
-    Click the 'Button' button
-    VERIFY that 'result' is present
-
-DONE.
-```
-
-**Rules:**
-- `@context:`, `@title:`, `STEP N:`, and `DONE.` are flush-left
-- Action lines inside a STEP are indented with 4 spaces
-- Lines starting with `#` are comments
+| Component | Role | Link |
+|-----------|------|------|
+| **ManulEngine** | Deterministic automation runtime (Python). Heuristic element resolver, `.hunt` DSL, CLI runner. | [PyPI](https://pypi.org/project/manul-engine/) · [GitHub](https://github.com/alexbeatnik/ManulEngine) |
+| **Manul Engine Extension** | VS Code extension for ManulEngine with debug panel, explain mode, and Test Explorer integration. | [Marketplace](https://marketplace.visualstudio.com/items?itemName=manul-engine.manul-engine) |
+| **ManulMcpServer** *(this)* | MCP bridge that gives Copilot Chat and other agents access to ManulEngine. | [Marketplace](https://marketplace.visualstudio.com/items?itemName=manul-engine.manul-mcp-server) · [GitHub](https://github.com/alexbeatnik/ManulMcpServer) |
+| **ManulAI Local Agent** | Autonomous AI agent for browser automation, powered by ManulEngine. | [GitHub](https://github.com/alexbeatnik/ManulAI-local-agent) |
 
 ---
 
@@ -187,7 +208,7 @@ DONE.
 | `Ctrl+Shift+R` | `Cmd+Shift+R` | Run Hunt File |
 | `Ctrl+Shift+Enter` | `Cmd+Shift+Enter` | Run Step |
 
-Shortcuts are active when a `.hunt` file is focused in the editor.
+Active when a `.hunt` file is focused in the editor.
 
 ---
 
