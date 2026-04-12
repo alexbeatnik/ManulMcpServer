@@ -39,8 +39,8 @@ const LINE_PATTERNS: ReadonlyArray<{ id: string; pattern: RegExp }> = [
   { id: 'debug_vars', pattern: /^DEBUG\s+VARS$/iu },
   { id: 'debug', pattern: /^(?:DEBUG|PAUSE)$/iu },
   { id: 'use_import', pattern: /^USE\s+[A-Za-z_][\w-]*$/iu },
-  { id: 'if_block', pattern: /^IF\s+.+:\s*$/iu },
-  { id: 'elif_block', pattern: /^ELIF\s+.+:\s*$/iu },
+  { id: 'if_block', pattern: /^IF\s+\S.+:\s*$/iu },
+  { id: 'elif_block', pattern: /^ELIF\s+\S.+:\s*$/iu },
   { id: 'else_block', pattern: /^ELSE\s*:\s*$/iu },
   { id: 'done', pattern: /^DONE\.$/iu },
   { id: 'step', pattern: /^STEP\s+\d*\s*:\s*.+$/iu },
@@ -64,8 +64,8 @@ export function validateStep(step: string, lineNumber = 1): ValidationIssue[] {
   ];
 }
 
-const IF_PATTERN = /^IF\s+.+:\s*$/iu;
-const ELIF_PATTERN = /^ELIF\s+.+:\s*$/iu;
+const IF_PATTERN = /^IF\s+\S.+:\s*$/iu;
+const ELIF_PATTERN = /^ELIF\s+\S.+:\s*$/iu;
 const ELSE_PATTERN = /^ELSE\s*:\s*$/iu;
 
 export function validateDocument(documentText: string): ValidationIssue[] {
@@ -175,16 +175,19 @@ export function validateDocument(documentText: string): ValidationIssue[] {
     }
 
     // Body line inside a conditional block — expect 8-space indent
-    if (lastConditionalBranch !== 'none' && line.raw.startsWith('        ')) {
-      if (!currentStepHeader) {
-        issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'Action lines should appear after a STEP header.', 'warning', 'missing-step-header'));
-      }
-      issues.push(...validateStep(line.trimmed, line.lineNumber));
-      continue;
-    }
-
-    // Non-8-space line ends the conditional block
     if (lastConditionalBranch !== 'none') {
+      if (line.raw.startsWith('        ')) {
+        if (!currentStepHeader) {
+          issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'Action lines should appear after a STEP header.', 'warning', 'missing-step-header'));
+        }
+        issues.push(...validateStep(line.trimmed, line.lineNumber));
+        continue;
+      }
+      if (line.raw.startsWith('    ') && !line.raw.startsWith('        ')) {
+        issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'Lines inside a conditional block must use an 8-space indent (4 base + 4 extra).', 'warning', 'indentation-conditional-body'));
+        issues.push(...validateStep(line.trimmed, line.lineNumber));
+        continue;
+      }
       lastConditionalBranch = 'none';
     }
 

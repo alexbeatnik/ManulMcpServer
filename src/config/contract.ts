@@ -336,7 +336,7 @@ export const dslContract: ManulDslContract = {
       uiText: "IF button 'Save' exists:",
       snippet: "IF ${1:condition}:\n        ${2:action}",
       regex: String.raw`^\s*(?:\d+\.\s*)?IF\b.+:\s*$`,
-      description: "Block-style conditional branching. Body lines are indented by 4 extra spaces. Supports ELIF and ELSE branches. Nesting supported. Conditions: element exists, text present, variable comparison/contains/truthy.",
+      description: "Block-style conditional branching. Body lines are indented by 4 extra spaces. Supports ELIF and ELSE branches. Conditions: element exists, text present, variable comparison/contains/truthy.",
       category: 'control_flow',
     },
     {

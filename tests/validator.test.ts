@@ -231,6 +231,14 @@ DONE.`;
     expect(issues).toEqual([]);
   });
 
+  it('warns about 4-space indent inside conditional body', () => {
+    const doc = `STEP 1: Test
+    IF button 'Save' exists:
+    Click the 'Save' button`;
+    const issues = validateDocument(doc);
+    expect(issues.some((i) => i.code === 'indentation-conditional-body')).toBe(true);
+  });
+
   it('resets conditional state on new STEP header', () => {
     const doc = `STEP 1: First
     IF button 'Save' exists:
