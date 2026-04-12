@@ -183,11 +183,7 @@ export function validateDocument(documentText: string): ValidationIssue[] {
         issues.push(...validateStep(line.trimmed, line.lineNumber));
         continue;
       }
-      if (line.raw.startsWith('    ') && !line.raw.startsWith('        ')) {
-        issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'Lines inside a conditional block must use an 8-space indent (4 base + 4 extra).', 'warning', 'indentation-conditional-body'));
-        issues.push(...validateStep(line.trimmed, line.lineNumber));
-        continue;
-      }
+      // 4-space (or less) line closes the conditional block — fall through to normal action validation
       lastConditionalBranch = 'none';
     }
 
