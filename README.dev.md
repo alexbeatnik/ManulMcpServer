@@ -132,7 +132,7 @@ npm run watch
 npm run package
 
 # Install into VS Code
-code --install-extension manul-mcp-server-0.0.6.vsix --force
+code --install-extension manul-mcp-server-0.0.7.vsix --force
 
 # Lifecycle hooks used by installed builds
 npm run vscode:install

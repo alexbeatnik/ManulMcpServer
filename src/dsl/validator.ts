@@ -39,6 +39,9 @@ const LINE_PATTERNS: ReadonlyArray<{ id: string; pattern: RegExp }> = [
   { id: 'debug_vars', pattern: /^DEBUG\s+VARS$/iu },
   { id: 'debug', pattern: /^(?:DEBUG|PAUSE)$/iu },
   { id: 'use_import', pattern: /^USE\s+[A-Za-z_][\w-]*$/iu },
+  { id: 'if_block', pattern: /^IF\s+\S.+:\s*$/iu },
+  { id: 'elif_block', pattern: /^ELIF\s+\S.+:\s*$/iu },
+  { id: 'else_block', pattern: /^ELSE\s*:\s*$/iu },
   { id: 'done', pattern: /^DONE\.$/iu },
   { id: 'step', pattern: /^STEP\s+\d*\s*:\s*.+$/iu },
   { id: 'metadata', pattern: /^@(context|title|blueprint|tags|var|script|data|schedule|import|export):\s*.+$/iu },
@@ -61,12 +64,17 @@ export function validateStep(step: string, lineNumber = 1): ValidationIssue[] {
   ];
 }
 
+const IF_PATTERN = /^IF\s+\S.+:\s*$/iu;
+const ELIF_PATTERN = /^ELIF\s+\S.+:\s*$/iu;
+const ELSE_PATTERN = /^ELSE\s*:\s*$/iu;
+
 export function validateDocument(documentText: string): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   let currentStepHeader = false;
   let doneSeen = false;
   let lastHookOpenLine = 0;
   let unclosedHook = false;
+  let lastConditionalBranch: 'none' | 'if' | 'elif' | 'else' = 'none';
 
   for (const line of iterateDslLines(documentText)) {
     if (line.kind === 'blank' || line.kind === 'comment') {
@@ -117,6 +125,7 @@ export function validateDocument(documentText: string): ValidationIssue[] {
         issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'STEP headers must be flush-left.', 'warning', 'indentation-step'));
       }
       currentStepHeader = true;
+      lastConditionalBranch = 'none';
       continue;
     }
 
@@ -126,7 +135,56 @@ export function validateDocument(documentText: string): ValidationIssue[] {
       }
       doneSeen = true;
       currentStepHeader = false;
+      lastConditionalBranch = 'none';
       continue;
+    }
+
+    // Detect conditional branch headers
+    const isIfLine = IF_PATTERN.test(line.trimmed);
+    const isElifLine = ELIF_PATTERN.test(line.trimmed);
+    const isElseLine = ELSE_PATTERN.test(line.trimmed);
+
+    if (isElifLine) {
+      if (lastConditionalBranch === 'else') {
+        issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'ELIF cannot appear after ELSE.', 'error', 'elif-after-else'));
+      } else if (lastConditionalBranch !== 'if' && lastConditionalBranch !== 'elif') {
+        issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'ELIF must follow an IF or ELIF block.', 'error', 'elif-without-if'));
+      }
+    }
+
+    if (isElseLine) {
+      if (lastConditionalBranch === 'else') {
+        issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'Only one ELSE block is allowed per IF.', 'error', 'duplicate-else'));
+      } else if (lastConditionalBranch !== 'if' && lastConditionalBranch !== 'elif') {
+        issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'ELSE must follow an IF or ELIF block.', 'error', 'else-without-if'));
+      }
+    }
+
+    if (isIfLine || isElifLine || isElseLine) {
+      if (isIfLine) { lastConditionalBranch = 'if'; }
+      else if (isElifLine) { lastConditionalBranch = 'elif'; }
+      else { lastConditionalBranch = 'else'; }
+
+      if (!line.raw.startsWith('    ')) {
+        issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'Action lines must be indented with 4 spaces under a STEP header.', 'warning', 'indentation-action'));
+      }
+      if (!currentStepHeader) {
+        issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'Action lines should appear after a STEP header.', 'warning', 'missing-step-header'));
+      }
+      continue;
+    }
+
+    // Body line inside a conditional block — expect 8-space indent
+    if (lastConditionalBranch !== 'none') {
+      if (line.raw.startsWith('        ')) {
+        if (!currentStepHeader) {
+          issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'Action lines should appear after a STEP header.', 'warning', 'missing-step-header'));
+        }
+        issues.push(...validateStep(line.trimmed, line.lineNumber));
+        continue;
+      }
+      // 4-space (or less) line closes the conditional block — fall through to normal action validation
+      lastConditionalBranch = 'none';
     }
 
     // action line

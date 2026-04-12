@@ -8,8 +8,8 @@
 
 ```json
 {
-  "version": "0.0.9.27",
-  "serverVersion": "0.0.6",
+  "version": "0.0.9.28",
+  "serverVersion": "0.0.7",
   "serverName": "manul-mcp-server",
   "protocol": "Model Context Protocol (MCP) over stdio",
   "generatedFrom": "src/mcp/stdioServer.ts, src/mcp/server.ts, src/config/contract.ts",
@@ -264,7 +264,7 @@
   ],
 
   "dslCommandReference": {
-    "version": "0.0.9.27",
+    "version": "0.0.9.28",
     "description": "DSL command set recognized by the ManulEngine parser. Use these commands as input to manul_run_step, manul_run_hunt, and in .hunt file content.",
 
     "navigation": [
@@ -275,7 +275,7 @@
     ],
 
     "clicking": [
-      { "command": "Click the 'Label' button", "description": "Click a button by label." },
+      { "command": "Click the 'Label' button", "description": "Click a button by label. Element type hint (button, link, element) is optional but recommended." },
       { "command": "Click the 'Label' link", "description": "Click a link by label." },
       { "command": "Click the 'Label' element", "description": "Click any generic element." },
       { "command": "DOUBLE CLICK the 'Label'", "description": "Double-click an element." },
@@ -343,6 +343,12 @@
       { "command": "STEP N: Description", "description": "Declare a hierarchical step block." },
       { "command": "USE BlockName", "description": "Expand an imported STEP block inline." },
       { "command": "DONE.", "description": "Explicitly end the mission." }
+    ],
+
+    "conditionalBranching": [
+      { "command": "IF button 'Save' exists:", "description": "Block-style conditional. Body indented 4 extra spaces. Conditions: element exists, text present, variable comparison/contains/truthy." },
+      { "command": "ELIF text 'Error' is present:", "description": "Alternative branch. Multiple ELIF allowed. Must follow IF or another ELIF." },
+      { "command": "ELSE:", "description": "Default branch. Only one ELSE, must be last." }
     ],
 
     "contextualQualifiers": [

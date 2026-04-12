@@ -96,6 +96,18 @@ describe('validateStep', () => {
   it('accepts Uncheck checkbox', () => {
     expect(validateStep("Uncheck the checkbox for 'Newsletter'")).toEqual([]);
   });
+
+  it('accepts IF block header', () => {
+    expect(validateStep("IF button 'Save' exists:")).toEqual([]);
+  });
+
+  it('accepts ELIF block header', () => {
+    expect(validateStep("ELIF text 'Error' is present:")).toEqual([]);
+  });
+
+  it('accepts ELSE block header', () => {
+    expect(validateStep('ELSE:')).toEqual([]);
+  });
 });
 
 describe('validateDocument', () => {
@@ -147,6 +159,98 @@ DONE.
     const issues = validateDocument(doc);
     expect(issues.some((i) => i.code === 'invalid-hook-command')).toBe(true);
   });
+
+  it('validates a well-formed conditional block', () => {
+    const doc = `STEP 1: Conditional
+    IF button 'Save' exists:
+        Click the 'Save' button
+    ELIF text 'Error' is present:
+        Click the 'Retry' button
+    ELSE:
+        Click the 'Cancel' button
+
+DONE.`;
+    expect(validateDocument(doc)).toEqual([]);
+  });
+
+  it('validates IF with body only (no ELIF/ELSE)', () => {
+    const doc = `STEP 1: Conditional
+    IF button 'Save' exists:
+        Click the 'Save' button
+
+DONE.`;
+    expect(validateDocument(doc)).toEqual([]);
+  });
+
+  it('reports ELIF without preceding IF', () => {
+    const doc = `STEP 1: Test
+    ELIF text 'Error' is present:
+        Click the 'Retry' button`;
+    const issues = validateDocument(doc);
+    expect(issues.some((i) => i.code === 'elif-without-if')).toBe(true);
+  });
+
+  it('reports ELSE without preceding IF', () => {
+    const doc = `STEP 1: Test
+    ELSE:
+        Click the 'Cancel' button`;
+    const issues = validateDocument(doc);
+    expect(issues.some((i) => i.code === 'else-without-if')).toBe(true);
+  });
+
+  it('reports ELIF after ELSE', () => {
+    const doc = `STEP 1: Test
+    IF button 'Save' exists:
+        Click the 'Save' button
+    ELSE:
+        Click the 'Cancel' button
+    ELIF text 'Error' is present:
+        Click the 'Retry' button`;
+    const issues = validateDocument(doc);
+    expect(issues.some((i) => i.code === 'elif-after-else')).toBe(true);
+  });
+
+  it('reports duplicate ELSE', () => {
+    const doc = `STEP 1: Test
+    IF button 'Save' exists:
+        Click the 'Save' button
+    ELSE:
+        Click the 'Cancel' button
+    ELSE:
+        Click the 'Retry' button`;
+    const issues = validateDocument(doc);
+    expect(issues.some((i) => i.code === 'duplicate-else')).toBe(true);
+  });
+
+  it('validates 8-space indent for conditional body lines', () => {
+    const doc = `STEP 1: Test
+    IF button 'Save' exists:
+        Click the 'Save' button
+        VERIFY that 'Saved' is present`;
+    const issues = validateDocument(doc);
+    expect(issues).toEqual([]);
+  });
+
+  it('accepts 4-space action after conditional as STEP continuation', () => {
+    const doc = `STEP 1: Test
+    IF button 'Save' exists:
+        Click the 'Save' button
+    VERIFY that 'Saved' is present`;
+    const issues = validateDocument(doc);
+    expect(issues).toEqual([]);
+  });
+
+  it('resets conditional state on new STEP header', () => {
+    const doc = `STEP 1: First
+    IF button 'Save' exists:
+        Click the 'Save' button
+
+STEP 2: Second
+    ELIF text 'Error' is present:
+        Click the 'Retry' button`;
+    const issues = validateDocument(doc);
+    expect(issues.some((i) => i.code === 'elif-without-if')).toBe(true);
+  });
 });
 
 describe('isRecognizedLine', () => {
@@ -167,5 +271,11 @@ describe('isRecognizedLine', () => {
   it('recognizes hook markers', () => {
     expect(isRecognizedLine('[SETUP]')).toBe(true);
     expect(isRecognizedLine('[END SETUP]')).toBe(true);
+  });
+
+  it('recognizes conditional block headers', () => {
+    expect(isRecognizedLine("IF button 'Save' exists:")).toBe(true);
+    expect(isRecognizedLine("ELIF text 'Error' is present:")).toBe(true);
+    expect(isRecognizedLine('ELSE:')).toBe(true);
   });
 });
