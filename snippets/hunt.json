@@ -91,5 +91,29 @@
     "prefix": "done",
     "body": "DONE.",
     "description": "Finish the hunt file"
+  },
+  "Manul If Block": {
+    "prefix": "if",
+    "body": [
+      "IF ${1:condition}:",
+      "        ${2:action}"
+    ],
+    "description": "Conditional branching block"
+  },
+  "Manul Elif Block": {
+    "prefix": "elif",
+    "body": [
+      "ELIF ${1:condition}:",
+      "        ${2:action}"
+    ],
+    "description": "Alternative branch in an IF block"
+  },
+  "Manul Else Block": {
+    "prefix": "else",
+    "body": [
+      "ELSE:",
+      "        ${1:action}"
+    ],
+    "description": "Default branch in an IF block"
   }
 }

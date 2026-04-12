@@ -96,6 +96,11 @@ When using ManulMcpServer tools (`manul_run_step`, `manul_run_hunt_file`, etc.) 
 - `USE BlockName` — expand an imported STEP block
 - `DONE.` — explicitly end the mission
 
+### Conditional Branching
+- `IF button 'Save' exists:` — block-style conditional; body lines indented 4 extra spaces
+- `ELIF text 'Error' is present:` — alternative branch; multiple ELIF allowed
+- `ELSE:` — default branch; must be last
+
 ### Contextual Qualifiers (disambiguation)
 - `Click the 'Edit' button NEAR 'John Doe'` — disambiguate repeated elements
 - `Click the 'Logo' link ON HEADER` — restrict to header/nav area

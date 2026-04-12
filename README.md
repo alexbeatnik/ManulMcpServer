@@ -19,13 +19,13 @@ VS Code extension that turns [ManulEngine](https://github.com/alexbeatnik/ManulE
 1. Install the `.vsix` file:
 
 ```bash
-code --install-extension manul-mcp-server-0.0.6.vsix
+code --install-extension manul-mcp-server-0.0.7.vsix
 ```
 
 2. Install the runtime dependencies:
 
 ```bash
-pip install manul-engine==0.0.9.27
+pip install manul-engine==0.0.9.28
 playwright install
 ```
 
@@ -52,7 +52,7 @@ For a new machine, the extension is not fully self-contained. The `mcp.json` wir
 
 1. Install the extension.
 2. Install Python 3.10+.
-3. Install `manul-engine==0.0.9.27` into the Python environment you want the server to use.
+3. Install `manul-engine==0.0.9.28` into the Python environment you want the server to use.
 4. Run `playwright install`.
 5. Open the target workspace if you expect workspace-local `.venv` auto-detection.
 6. Reload VS Code.
@@ -192,6 +192,14 @@ Shortcuts are active when a `.hunt` file is focused in the editor.
 ---
 
 ## What's New
+
+### 0.0.7
+
+- **Compatibility:** Synced embedded DSL contract metadata to ManulEngine `0.0.9.28`.
+- **DSL:** Added `IF` / `ELIF` / `ELSE` conditional branching — validation, syntax highlighting, completion, snippets, and agent contract.
+- **DSL:** Updated canonical command labels to ALL UPPERCASE per engine `casePolicy` (`CLICK`, `FILL`, `TYPE`, `SELECT`, `CHECK`, `UNCHECK`, `DRAG`).
+- **Docs:** Updated `contracts/MANUL_MCP_AGENT_CONTRACT.md` and `.github/copilot-instructions.md` with conditional branching reference.
+- **Release:** Updated extension/package versioning to `0.0.7`.
 
 ### 0.0.6
 
