@@ -371,7 +371,7 @@ export const dslContract: ManulDslContract = {
       label: 'FOR EACH',
       uiText: 'FOR EACH {item} IN {items}:',
       snippet: 'FOR EACH {${1:var}} IN {${2:collection}}:\n        ${3:action}',
-      regex: String.raw`^\s*(?:\d+\.\s*)?FOR\s+EACH\s+\{?\w+\}?\s+IN\s+\{?\w+\}?\s*:\s*$`,
+      regex: String.raw`^\s*(?:\d+\.\s*)?FOR\s+EACH\s+\{?[A-Za-z_]\w*\}?\s+IN\s+\{?[A-Za-z_]\w*\}?\s*:\s*$`,
       description: 'Iterate over comma-separated values from a variable. On each iteration, the loop variable and {i} counter are set. Nesting supported.',
       category: 'control_flow',
     },
