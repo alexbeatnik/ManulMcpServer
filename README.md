@@ -214,6 +214,13 @@ Active when a `.hunt` file is focused in the editor.
 
 ## What's New
 
+### 0.0.8
+
+- **Compatibility:** Synced embedded DSL contract metadata to ManulEngine `0.0.9.29`.
+- **DSL:** Added `REPEAT N TIMES:`, `FOR EACH {var} IN {collection}:`, and `WHILE condition:` loop commands — validation, syntax highlighting, completion, snippets, and agent contract.
+- **Docs:** Updated `contracts/MANUL_MCP_AGENT_CONTRACT.md` and `.github/copilot-instructions.md` with loops reference.
+- **Release:** Updated extension/package versioning to `0.0.8`.
+
 ### 0.0.7
 
 - **Compatibility:** Synced embedded DSL contract metadata to ManulEngine `0.0.9.28`.

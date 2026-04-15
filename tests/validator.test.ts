@@ -108,6 +108,18 @@ describe('validateStep', () => {
   it('accepts ELSE block header', () => {
     expect(validateStep('ELSE:')).toEqual([]);
   });
+
+  it('accepts REPEAT loop header', () => {
+    expect(validateStep('REPEAT 3 TIMES:')).toEqual([]);
+  });
+
+  it('accepts FOR EACH loop header', () => {
+    expect(validateStep('FOR EACH {item} IN {items}:')).toEqual([]);
+  });
+
+  it('accepts WHILE loop header', () => {
+    expect(validateStep("WHILE button 'Next' exists:")).toEqual([]);
+  });
 });
 
 describe('validateDocument', () => {
@@ -251,6 +263,36 @@ STEP 2: Second
     const issues = validateDocument(doc);
     expect(issues.some((i) => i.code === 'elif-without-if')).toBe(true);
   });
+
+  it('validates a well-formed REPEAT loop', () => {
+    const doc = `STEP 1: Loop test
+    REPEAT 3 TIMES:
+        Click the 'Next' button
+        VERIFY that 'Page' is present
+
+DONE.`;
+    expect(validateDocument(doc)).toEqual([]);
+  });
+
+  it('validates a well-formed FOR EACH loop', () => {
+    const doc = `STEP 1: Iteration
+    FOR EACH {item} IN {items}:
+        Fill 'Search' field with '{item}'
+        PRESS ENTER
+
+DONE.`;
+    expect(validateDocument(doc)).toEqual([]);
+  });
+
+  it('validates a well-formed WHILE loop', () => {
+    const doc = `STEP 1: Pagination
+    WHILE button 'Next' exists:
+        Click the 'Next' button
+        WAIT 1
+
+DONE.`;
+    expect(validateDocument(doc)).toEqual([]);
+  });
 });
 
 describe('isRecognizedLine', () => {
@@ -277,5 +319,11 @@ describe('isRecognizedLine', () => {
     expect(isRecognizedLine("IF button 'Save' exists:")).toBe(true);
     expect(isRecognizedLine("ELIF text 'Error' is present:")).toBe(true);
     expect(isRecognizedLine('ELSE:')).toBe(true);
+  });
+
+  it('recognizes loop headers', () => {
+    expect(isRecognizedLine('REPEAT 3 TIMES:')).toBe(true);
+    expect(isRecognizedLine('FOR EACH {item} IN {items}:')).toBe(true);
+    expect(isRecognizedLine("WHILE button 'Next' exists:")).toBe(true);
   });
 });

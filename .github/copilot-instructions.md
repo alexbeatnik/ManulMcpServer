@@ -33,7 +33,7 @@ When using ManulMcpServer tools (`manul_run_step`, `manul_run_hunt_file`, etc.) 
 - `DONE.` must be flush-left
 - Action lines inside a STEP are indented with 4 spaces
 
-## DSL Command Reference (v0.0.9.27)
+## DSL Command Reference (v0.0.9.29)
 
 ### Navigation
 - `NAVIGATE to 'https://example.com'` — open URL, wait for DOM
@@ -100,6 +100,11 @@ When using ManulMcpServer tools (`manul_run_step`, `manul_run_hunt_file`, etc.) 
 - `IF button 'Save' exists:` — block-style conditional; body lines indented 4 extra spaces
 - `ELIF text 'Error' is present:` — alternative branch; multiple ELIF allowed
 - `ELSE:` — default branch; must be last
+
+### Loops
+- `REPEAT 3 TIMES:` — fixed-count loop; body lines indented 4 extra spaces; `{i}` counter auto-set (1-based)
+- `FOR EACH {item} IN {items}:` — iterate over comma-separated values from a variable; `{i}` counter auto-set
+- `WHILE button 'Next' exists:` — repeat while condition is true; same conditions as IF; safety limit: 100 iterations
 
 ### Contextual Qualifiers (disambiguation)
 - `Click the 'Edit' button NEAR 'John Doe'` — disambiguate repeated elements

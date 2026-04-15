@@ -8,8 +8,8 @@
 
 ```json
 {
-  "version": "0.0.9.28",
-  "serverVersion": "0.0.7",
+  "version": "0.0.9.29",
+  "serverVersion": "0.0.8",
   "serverName": "manul-mcp-server",
   "protocol": "Model Context Protocol (MCP) over stdio",
   "generatedFrom": "src/mcp/stdioServer.ts, src/mcp/server.ts, src/config/contract.ts",
@@ -264,7 +264,7 @@
   ],
 
   "dslCommandReference": {
-    "version": "0.0.9.28",
+    "version": "0.0.9.29",
     "description": "DSL command set recognized by the ManulEngine parser. Use these commands as input to manul_run_step, manul_run_hunt, and in .hunt file content.",
 
     "navigation": [
@@ -349,6 +349,12 @@
       { "command": "IF button 'Save' exists:", "description": "Block-style conditional. Body indented 4 extra spaces. Conditions: element exists, text present, variable comparison/contains/truthy." },
       { "command": "ELIF text 'Error' is present:", "description": "Alternative branch. Multiple ELIF allowed. Must follow IF or another ELIF." },
       { "command": "ELSE:", "description": "Default branch. Only one ELSE, must be last." }
+    ],
+
+    "loops": [
+      { "command": "REPEAT 3 TIMES:", "description": "Fixed-count loop. Body indented 4 extra spaces. {i} counter auto-set (1-based). Nesting supported." },
+      { "command": "FOR EACH {item} IN {items}:", "description": "Iterate over comma-separated values from a variable. Loop variable and {i} counter set on each iteration. Nesting supported." },
+      { "command": "WHILE button 'Next' exists:", "description": "Repeat while condition is true. Same conditions as IF blocks. Safety limit: 100 iterations. {i} counter auto-set. Nesting supported." }
     ],
 
     "contextualQualifiers": [
