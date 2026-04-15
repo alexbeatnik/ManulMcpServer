@@ -1,7 +1,7 @@
 import type { ManulDslContract } from '../types/contract';
 
 export const dslContract: ManulDslContract = {
-  version: '0.0.9.28',
+  version: '0.0.9.29',
   generatedFrom:
     'manul_engine/helpers.py :: classify_step(), detect_mode(), parse_contextual_hint(); manul_engine/core.py :: run_mission(); manul_engine/cli.py :: parse_hunt_file(); manul_engine/actions.py :: _ActionsMixin; manul_engine/scoring.py :: DOMScorer contextual proximity rules; manul_engine/js_scripts.py :: SNAPSHOT_JS geometry export; manul_engine/imports.py :: parse_import_directive(), resolve_imports(), expand_use_directives()',
   commands: [
@@ -99,7 +99,7 @@ export const dslContract: ManulDslContract = {
       uiText: "HOVER over the ''",
       snippet: "HOVER over the '${1:target}'",
       regex: null,
-      description: "Hovers over a resolved element. Detected by the 'hover' verb. Interaction mode: hover.",
+      description: "Hovers over a resolved element. Detected by the 'hover' verb (case-insensitive). Interaction mode: hover.",
       category: 'interaction',
       interactionMode: 'hover',
     },
@@ -355,6 +355,33 @@ export const dslContract: ManulDslContract = {
       snippet: "ELSE:\n        ${1:action}",
       regex: String.raw`^\s*(?:\d+\.\s*)?ELSE\s*:\s*$`,
       description: 'Default branch in an IF block. Only one ELSE is allowed and must be the last branch.',
+      category: 'control_flow',
+    },
+    {
+      id: 'repeat_loop',
+      label: 'REPEAT',
+      uiText: 'REPEAT 3 TIMES:',
+      snippet: 'REPEAT ${1:N} TIMES:\n        ${2:action}',
+      regex: String.raw`^\s*(?:\d+\.\s*)?REPEAT\s+\d+\s+TIMES\s*:\s*$`,
+      description: 'Fixed-count loop. Body lines are indented by 4 extra spaces. {i} counter variable is auto-set (1-based). Nesting supported.',
+      category: 'control_flow',
+    },
+    {
+      id: 'for_each_loop',
+      label: 'FOR EACH',
+      uiText: 'FOR EACH {item} IN {items}:',
+      snippet: 'FOR EACH {${1:var}} IN {${2:collection}}:\n        ${3:action}',
+      regex: String.raw`^\s*(?:\d+\.\s*)?FOR\s+EACH\s+\{?[A-Za-z_]\w*\}?\s+IN\s+\{?[A-Za-z_]\w*\}?\s*:\s*$`,
+      description: 'Iterate over comma-separated values from a variable. On each iteration, the loop variable and {i} counter are set. Nesting supported.',
+      category: 'control_flow',
+    },
+    {
+      id: 'while_loop',
+      label: 'WHILE',
+      uiText: "WHILE button 'Next' exists:",
+      snippet: 'WHILE ${1:condition}:\n        ${2:action}',
+      regex: String.raw`^\s*(?:\d+\.\s*)?WHILE\b.+:\s*$`,
+      description: 'Repeat while condition is true. Uses same conditions as IF blocks. Safety limit: 100 iterations. {i} counter auto-set. Nesting supported.',
       category: 'control_flow',
     },
   ],

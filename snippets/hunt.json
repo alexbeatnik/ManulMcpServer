@@ -115,5 +115,29 @@
       "        ${1:action}"
     ],
     "description": "Default branch in an IF block"
+  },
+  "Manul Repeat Loop": {
+    "prefix": "repeat",
+    "body": [
+      "REPEAT ${1:3} TIMES:",
+      "        ${2:action}"
+    ],
+    "description": "Fixed-count loop with {i} counter"
+  },
+  "Manul For Each Loop": {
+    "prefix": "foreach",
+    "body": [
+      "FOR EACH {${1:item}} IN {${2:items}}:",
+      "        ${3:action}"
+    ],
+    "description": "Iterate over comma-separated variable values"
+  },
+  "Manul While Loop": {
+    "prefix": "while",
+    "body": [
+      "WHILE ${1:condition}:",
+      "        ${2:action}"
+    ],
+    "description": "Repeat while condition is true (safety limit: 100 iterations)"
   }
 }
