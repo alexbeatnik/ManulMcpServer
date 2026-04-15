@@ -42,6 +42,9 @@ const LINE_PATTERNS: ReadonlyArray<{ id: string; pattern: RegExp }> = [
   { id: 'if_block', pattern: /^IF\s+\S.+:\s*$/iu },
   { id: 'elif_block', pattern: /^ELIF\s+\S.+:\s*$/iu },
   { id: 'else_block', pattern: /^ELSE\s*:\s*$/iu },
+  { id: 'repeat_loop', pattern: /^REPEAT\s+\d+\s+TIMES\s*:\s*$/iu },
+  { id: 'for_each_loop', pattern: /^FOR\s+EACH\s+\{?[A-Za-z_]\w*\}?\s+IN\s+\{?[A-Za-z_]\w*\}?\s*:\s*$/iu },
+  { id: 'while_loop', pattern: /^WHILE\b.*[^\s:].*:\s*$/iu },
   { id: 'done', pattern: /^DONE\.$/iu },
   { id: 'step', pattern: /^STEP\s+\d*\s*:\s*.+$/iu },
   { id: 'metadata', pattern: /^@(context|title|blueprint|tags|var|script|data|schedule|import|export):\s*.+$/iu },
@@ -67,6 +70,9 @@ export function validateStep(step: string, lineNumber = 1): ValidationIssue[] {
 const IF_PATTERN = /^IF\s+\S.+:\s*$/iu;
 const ELIF_PATTERN = /^ELIF\s+\S.+:\s*$/iu;
 const ELSE_PATTERN = /^ELSE\s*:\s*$/iu;
+const REPEAT_PATTERN = /^REPEAT\s+\d+\s+TIMES\s*:\s*$/iu;
+const FOR_EACH_PATTERN = /^FOR\s+EACH\s+\{?[A-Za-z_]\w*\}?\s+IN\s+\{?[A-Za-z_]\w*\}?\s*:\s*$/iu;
+const WHILE_PATTERN = /^WHILE\b.*[^\s:].*:\s*$/iu;
 
 export function validateDocument(documentText: string): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
@@ -74,7 +80,36 @@ export function validateDocument(documentText: string): ValidationIssue[] {
   let doneSeen = false;
   let lastHookOpenLine = 0;
   let unclosedHook = false;
-  let lastConditionalBranch: 'none' | 'if' | 'elif' | 'else' = 'none';
+  type ConditionalState = 'if' | 'elif' | 'else' | 'loop';
+  type ConditionalFrame = { state: ConditionalState; indent: number };
+  const conditionalStack: ConditionalFrame[] = [];
+
+  function indentLevel(raw: string): number {
+    const match = raw.match(/^(\s*)/);
+    return match ? match[1].length : 0;
+  }
+
+  function currentConditional(indent: number): ConditionalFrame | null {
+    for (let i = conditionalStack.length - 1; i >= 0; i--) {
+      if (conditionalStack[i].indent === indent) { return conditionalStack[i]; }
+      if (conditionalStack[i].indent < indent) { return null; }
+    }
+    return null;
+  }
+
+  function setConditional(indent: number, state: ConditionalState): void {
+    while (conditionalStack.length > 0 && conditionalStack[conditionalStack.length - 1].indent > indent) {
+      conditionalStack.pop();
+    }
+    const existing = conditionalStack.length > 0 && conditionalStack[conditionalStack.length - 1].indent === indent
+      ? conditionalStack[conditionalStack.length - 1]
+      : null;
+    if (existing) {
+      existing.state = state;
+    } else {
+      conditionalStack.push({ state, indent });
+    }
+  }
 
   for (const line of iterateDslLines(documentText)) {
     if (line.kind === 'blank' || line.kind === 'comment') {
@@ -125,7 +160,7 @@ export function validateDocument(documentText: string): ValidationIssue[] {
         issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'STEP headers must be flush-left.', 'warning', 'indentation-step'));
       }
       currentStepHeader = true;
-      lastConditionalBranch = 'none';
+      conditionalStack.length = 0;
       continue;
     }
 
@@ -135,9 +170,11 @@ export function validateDocument(documentText: string): ValidationIssue[] {
       }
       doneSeen = true;
       currentStepHeader = false;
-      lastConditionalBranch = 'none';
+      conditionalStack.length = 0;
       continue;
     }
+
+    const indent = indentLevel(line.raw);
 
     // Detect conditional branch headers
     const isIfLine = IF_PATTERN.test(line.trimmed);
@@ -145,25 +182,29 @@ export function validateDocument(documentText: string): ValidationIssue[] {
     const isElseLine = ELSE_PATTERN.test(line.trimmed);
 
     if (isElifLine) {
-      if (lastConditionalBranch === 'else') {
-        issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'ELIF cannot appear after ELSE.', 'error', 'elif-after-else'));
-      } else if (lastConditionalBranch !== 'if' && lastConditionalBranch !== 'elif') {
-        issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'ELIF must follow an IF or ELIF block.', 'error', 'elif-without-if'));
+      const frame = currentConditional(indent);
+      if (!frame || frame.state === 'else' || frame.state === 'loop') {
+        if (frame?.state === 'else') {
+          issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'ELIF cannot appear after ELSE.', 'error', 'elif-after-else'));
+        } else {
+          issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'ELIF must follow an IF or ELIF block.', 'error', 'elif-without-if'));
+        }
       }
     }
 
     if (isElseLine) {
-      if (lastConditionalBranch === 'else') {
-        issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'Only one ELSE block is allowed per IF.', 'error', 'duplicate-else'));
-      } else if (lastConditionalBranch !== 'if' && lastConditionalBranch !== 'elif') {
+      const frame = currentConditional(indent);
+      if (!frame || frame.state === 'loop') {
         issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'ELSE must follow an IF or ELIF block.', 'error', 'else-without-if'));
+      } else if (frame.state === 'else') {
+        issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'Only one ELSE block is allowed per IF.', 'error', 'duplicate-else'));
       }
     }
 
     if (isIfLine || isElifLine || isElseLine) {
-      if (isIfLine) { lastConditionalBranch = 'if'; }
-      else if (isElifLine) { lastConditionalBranch = 'elif'; }
-      else { lastConditionalBranch = 'else'; }
+      if (isIfLine) { setConditional(indent, 'if'); }
+      else if (isElifLine) { setConditional(indent, 'elif'); }
+      else { setConditional(indent, 'else'); }
 
       if (!line.raw.startsWith('    ')) {
         issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'Action lines must be indented with 4 spaces under a STEP header.', 'warning', 'indentation-action'));
@@ -174,17 +215,23 @@ export function validateDocument(documentText: string): ValidationIssue[] {
       continue;
     }
 
-    // Body line inside a conditional block — expect 8-space indent
-    if (lastConditionalBranch !== 'none') {
-      if (line.raw.startsWith('        ')) {
-        if (!currentStepHeader) {
-          issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'Action lines should appear after a STEP header.', 'warning', 'missing-step-header'));
-        }
-        issues.push(...validateStep(line.trimmed, line.lineNumber));
-        continue;
+    // Detect loop headers
+    const isLoopLine = REPEAT_PATTERN.test(line.trimmed) || FOR_EACH_PATTERN.test(line.trimmed) || WHILE_PATTERN.test(line.trimmed);
+    if (isLoopLine) {
+      setConditional(indent, 'loop');
+
+      if (!line.raw.startsWith('    ')) {
+        issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'Action lines must be indented with 4 spaces under a STEP header.', 'warning', 'indentation-action'));
       }
-      // 4-space (or less) line closes the conditional block — fall through to normal action validation
-      lastConditionalBranch = 'none';
+      if (!currentStepHeader) {
+        issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'Action lines should appear after a STEP header.', 'warning', 'missing-step-header'));
+      }
+      continue;
+    }
+
+    // Pop stale conditional frames when indent returns to or below a header's level
+    while (conditionalStack.length > 0 && conditionalStack[conditionalStack.length - 1].indent >= indent) {
+      conditionalStack.pop();
     }
 
     // action line
