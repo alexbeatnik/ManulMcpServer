@@ -293,6 +293,47 @@ DONE.`;
 DONE.`;
     expect(validateDocument(doc)).toEqual([]);
   });
+
+  it('validates nested IF blocks inside a REPEAT loop', () => {
+    const doc = `STEP 1: Nested loop conditional
+    REPEAT 2 TIMES:
+        IF button 'Next' exists:
+            Click the 'Next' button
+        ELSE:
+            VERIFY that 'Done' is present
+
+DONE.`;
+    expect(validateDocument(doc)).toEqual([]);
+  });
+
+  it('validates a REPEAT loop nested inside an IF block', () => {
+    const doc = `STEP 1: Nested conditional loop
+    IF text 'Results' is present:
+        REPEAT 2 TIMES:
+            Click the 'Next' button
+            WAIT 1
+    ELSE:
+        Click the 'Retry' button
+
+DONE.`;
+    expect(validateDocument(doc)).toEqual([]);
+  });
+
+  it('validates nested IF/ELIF/ELSE blocks at deeper indentation', () => {
+    const doc = `STEP 1: Deep nesting
+    IF button 'Start' exists:
+        IF text 'Ready' is present:
+            Click the 'Start' button
+        ELIF text 'Blocked' is present:
+            Click the 'Help' button
+        ELSE:
+            VERIFY that 'Waiting' is present
+    ELSE:
+        Click the 'Retry' button
+
+DONE.`;
+    expect(validateDocument(doc)).toEqual([]);
+  });
 });
 
 describe('isRecognizedLine', () => {
