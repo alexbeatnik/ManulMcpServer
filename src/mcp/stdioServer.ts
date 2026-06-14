@@ -6,10 +6,13 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import type { CallToolResult, CreateTaskResult } from '@modelcontextprotocol/sdk/types.js';
 
 import { getRuntimeSettingsFromEnv, getMcpServerLabelFromEnv } from '../config/runtimeSettings';
+import { resolveRuntime } from '../config/runtime';
 import { extractRunnableSteps, normalizeGoal, normalizeNaturalLanguageStep } from '../dsl/builder';
 import { validateDocument, validateStep } from '../dsl/validator';
 import { ManulMcpServer } from './server';
 import { PythonRunner } from '../services/pythonRunner';
+import { GoRunner } from '../services/goRunner';
+import type { IManulRunner } from '../types/api';
 import { resolveInsideWorkspace } from '../security/pathValidator';
 
 interface ToolDefinition {
@@ -22,7 +25,7 @@ interface ToolDefinition {
 type McpToolResult = CallToolResult;
 type McpTaskResult = CreateTaskResult;
 
-const SERVER_VERSION = '0.0.8';
+const SERVER_VERSION = '0.0.9';
 const label = getMcpServerLabelFromEnv();
 
 const logger = {
@@ -45,20 +48,46 @@ const logger = {
 };
 
 const runtimeSettings = getRuntimeSettingsFromEnv();
-const runnerScriptPath = path.join(__dirname, '..', '..', 'python', 'manul_runner.py');
-const pythonRunner = new PythonRunner(
-  {
-    pythonPath: runtimeSettings.pythonPath,
-    executablePath: runtimeSettings.executablePath,
-    runnerScriptPath,
-    timeoutMs: runtimeSettings.requestTimeoutMs,
-    headless: runtimeSettings.headless,
-    workspacePath: runtimeSettings.workspacePath,
-    extensionPath: runtimeSettings.extensionPath,
-  },
-  logger,
-);
-const manulServer = new ManulMcpServer(pythonRunner, logger);
+const resolvedRuntime = resolveRuntime({
+  runtime: runtimeSettings.runtime,
+  binaryPath: runtimeSettings.binaryPath,
+  workspacePath: runtimeSettings.workspacePath,
+});
+const runner: IManulRunner = createRunner();
+
+function createRunner(): IManulRunner {
+  if (resolvedRuntime === 'go') {
+    logger.info('Using ManulHeart (Go) runtime.');
+    return new GoRunner(
+      {
+        binaryPath: runtimeSettings.binaryPath,
+        executablePath: runtimeSettings.executablePath,
+        headless: runtimeSettings.headless,
+        cdpPort: runtimeSettings.cdpPort,
+        timeoutMs: runtimeSettings.requestTimeoutMs,
+        workspacePath: runtimeSettings.workspacePath,
+      },
+      logger,
+    );
+  }
+
+  logger.info('Using ManulEngine (Python) runtime.');
+  const runnerScriptPath = path.join(__dirname, '..', '..', 'python', 'manul_runner.py');
+  return new PythonRunner(
+    {
+      pythonPath: runtimeSettings.pythonPath,
+      executablePath: runtimeSettings.executablePath,
+      runnerScriptPath,
+      timeoutMs: runtimeSettings.requestTimeoutMs,
+      headless: runtimeSettings.headless,
+      workspacePath: runtimeSettings.workspacePath,
+      extensionPath: runtimeSettings.extensionPath,
+    },
+    logger,
+  );
+}
+
+const manulServer = new ManulMcpServer(runner, logger);
 const tools = new Map<string, ToolDefinition>(createTools().map((tool) => [tool.name, tool]));
 
 function createTools(): ToolDefinition[] {
@@ -109,7 +138,7 @@ function createTools(): ToolDefinition[] {
         const title = typeof argumentsValue['title'] === 'string' ? argumentsValue['title'] : undefined;
         const context = typeof argumentsValue['context'] === 'string' ? argumentsValue['context'] : undefined;
         // Always reset so the proposal covers only steps from this goal invocation
-        await pythonRunner.reset(context ?? goal, title ?? goal);
+        await runner.reset(context ?? goal, title ?? goal);
         const result = await manulServer.runGoal(goal);
         const data = asObject((result.response as { ok: boolean; data?: unknown }).data);
         const huntProposal = typeof data['hunt_proposal'] === 'string' ? data['hunt_proposal'] : '';
@@ -252,7 +281,7 @@ function createTools(): ToolDefinition[] {
         const { resolvedPath } = await resolveInsideWorkspace(filePath, workspaceRoot, {
           allowedExtensions: ['.hunt'],
         });
-        const response = await pythonRunner.saveHunt(resolvedPath, content);
+        const response = await runner.saveHunt(resolvedPath, content);
         return createExecutionResult(`Hunt file saved.`, { response });
       },
     },
@@ -267,7 +296,7 @@ function createTools(): ToolDefinition[] {
         additionalProperties: false,
       },
       handler: async () => {
-        const response = await pythonRunner.scanPage();
+        const response = await runner.scanPage();
         return createExecutionResult('Scanned page elements.', { response });
       },
     },
@@ -282,7 +311,7 @@ function createTools(): ToolDefinition[] {
         additionalProperties: false,
       },
       handler: async () => {
-        const response = await pythonRunner.readPageText();
+        const response = await runner.readPageText();
         return createExecutionResult('Read page text content.', { response });
       },
     },
@@ -479,7 +508,10 @@ function createForbiddenTaskResult(toolName: string): McpTaskResult {
 let activeServer: Server | undefined;
 
 async function main(): Promise<void> {
-  logger.info(`Starting ${label} MCP bridge (Python runner: ${runtimeSettings.pythonPath})`);
+  const runtimeLabel = resolvedRuntime === 'go'
+    ? `ManulHeart Go binary: ${runtimeSettings.binaryPath || 'manul'}`
+    : `ManulEngine Python runner: ${runtimeSettings.pythonPath}`;
+  logger.info(`Starting ${label} MCP bridge (${runtimeLabel})`);
 
   const server = createSdkServer();
   const transport = new StdioServerTransport();
@@ -491,7 +523,7 @@ async function main(): Promise<void> {
 
 async function shutdown(signal: string): Promise<void> {
   logger.info(`Received ${signal}, shutting down MCP bridge.`);
-  await pythonRunner.shutdown().catch(() => {});
+  await runner.shutdown().catch(() => {});
   await activeServer?.close();
   process.exit(0);
 }

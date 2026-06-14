@@ -50,7 +50,10 @@ async function createServerDefinition(context: vscode.ExtensionContext): Promise
       MANUL_WORKSPACE_PATH: settings.workspacePath,
       MANUL_EXTENSION_PATH: context.extensionPath,
       MANUL_MCP_LABEL: label,
+      MANUL_RUNTIME: settings.runtime,
+      MANUL_BINARY_PATH: settings.binaryPath,
+      MANUL_CDP_PORT: String(settings.cdpPort),
     },
-    '0.0.7',
+    '0.0.9',
   );
 }

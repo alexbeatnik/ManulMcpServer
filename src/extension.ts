@@ -2,7 +2,11 @@ import * as vscode from 'vscode';
 
 import { createRunFileCommand } from './commands/runFile';
 import { createRunStepCommand } from './commands/runStep';
-import { getExtensionSettings } from './config/settings';
+import { getExtensionSettings, type ManulExtensionSettings } from './config/settings';
+import { normalizeRuntime, normalizePort, normalizeTimeout } from './config/defaults';
+import { resolveRuntime } from './config/runtime';
+import { GoRunner } from './services/goRunner';
+import type { IManulBackend } from './types/api';
 import { registerCompletionProvider } from './language/completion';
 import { registerDiagnostics } from './language/diagnostics';
 import { registerHoverProvider } from './language/hover';
@@ -18,8 +22,12 @@ export function activate(context: vscode.ExtensionContext): void {
   const output = new ManulOutputChannel();
   const statusBar = new ManulStatusBar();
   const settingsProvider = () => getExtensionSettings(context);
-  const apiClient = new ManulApiClient(settingsProvider);
-  const mcpServer = new ManulMcpServer(apiClient, output);
+  const { backend, goRunner } = createEditorBackend(settingsProvider, output);
+  const mcpServer = new ManulMcpServer(backend, output);
+
+  if (goRunner) {
+    context.subscriptions.push({ dispose: () => void goRunner.shutdown() });
+  }
 
   context.subscriptions.push(
     output,
@@ -49,6 +57,45 @@ export function activate(context: vscode.ExtensionContext): void {
 
 export function deactivate(): void {
   // VS Code disposes registered resources from the extension context.
+}
+
+/**
+ * Pick the backend the editor Run commands drive: the ManulHeart (Go) runner
+ * when the Go runtime is resolved, otherwise the ManulEngine HTTP client
+ * (`manul serve`). The choice is fixed at activation; changing manul.runtime
+ * takes effect after a window reload.
+ */
+function createEditorBackend(
+  settingsProvider: () => Promise<ManulExtensionSettings>,
+  output: ManulOutputChannel,
+): { backend: IManulBackend; goRunner?: GoRunner } {
+  const configuration = vscode.workspace.getConfiguration('manul');
+  const binaryPath = configuration.get<string>('binaryPath', '').trim();
+  const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
+  const runtime = resolveRuntime({
+    runtime: normalizeRuntime(configuration.get<string>('runtime', 'auto')),
+    binaryPath,
+    workspacePath,
+  });
+
+  if (runtime === 'go') {
+    output.info('Editor Run commands use the ManulHeart (Go) runtime.');
+    const goRunner = new GoRunner(
+      {
+        binaryPath,
+        executablePath: configuration.get<string>('executablePath', '').trim(),
+        headless: configuration.get<boolean>('headless', false),
+        cdpPort: normalizePort(configuration.get<number>('cdpPort', 0)),
+        timeoutMs: normalizeTimeout(configuration.get<number>('requestTimeoutMs', 60000)),
+        workspacePath,
+      },
+      output,
+    );
+    return { backend: goRunner, goRunner };
+  }
+
+  output.info('Editor Run commands use the ManulEngine (Python) HTTP API.');
+  return { backend: new ManulApiClient(settingsProvider) };
 }
 
 async function warmBackendState(mcpServer: ManulMcpServer, output: ManulOutputChannel): Promise<void> {

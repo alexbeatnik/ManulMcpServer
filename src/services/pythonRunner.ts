@@ -3,7 +3,7 @@ import type { ChildProcess } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import * as path from 'node:path';
 
-import type { ApiResult, ManulEngineState } from '../types/api';
+import type { ApiResult, IManulRunner, ManulEngineState } from '../types/api';
 import type { ManulLogger } from './logger';
 
 // Relative venv candidates checked in order under a given root directory.
@@ -84,7 +84,7 @@ export interface PythonRunnerOptions {
   readonly extensionPath: string;
 }
 
-export class PythonRunner {
+export class PythonRunner implements IManulRunner {
   private process: ChildProcess | null = null;
   private readonly pending = new Map<string, (msg: RunnerMessage) => void>();
   private messageCounter = 0;

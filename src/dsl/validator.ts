@@ -35,6 +35,13 @@ const LINE_PATTERNS: ReadonlyArray<{ id: string; pattern: RegExp }> = [
   { id: 'mock', pattern: new RegExp(`^MOCK\\s+(?:GET|POST|PUT|PATCH|DELETE)\\s+["'].+["']\\s+with\\s+${QUOTED}$`, 'iu') },
   { id: 'scan_page', pattern: /^SCAN\s+PAGE(?:\s+into\s+\{[A-Za-z_]\w*\})?$/iu },
   { id: 'call_python', pattern: /^CALL\s+PYTHON\s+(?:\{[A-Za-z_]\w*\}(?:\.\w+)?|[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+)(?:\s+with\s+args:\s+(?:["'][^"']*["']\s*)+)?(?:\s+(?:into|to)\s+\{[A-Za-z_]\w*\})?$/iu },
+  // ── ManulHeart (Go runtime) dialect ──────────────────────────────────────────
+  { id: 'call_go', pattern: /^CALL\s+GO\s+(?:\{[A-Za-z_]\w*\}(?:\.\w+)?|[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+)(?:\s+with\s+args:\s+(?:["'][^"']*["']\s*)+)?(?:\s+(?:into|to)\s+\{[A-Za-z_]\w*\})?$/iu },
+  { id: 'call_block', pattern: /^CALL\s+(?!PYTHON\b|GO\b)[A-Za-z_][\w-]*$/iu },
+  { id: 'print', pattern: /^PRINT\s+\S.*$/iu },
+  { id: 'screenshot', pattern: /^SCREENSHOT$/iu },
+  { id: 'wait_for_label', pattern: new RegExp(`^WAIT_FOR\\s+${QUOTED}$`, 'iu') },
+  { id: 'end_block', pattern: /^END\s+(?:IF|REPEAT|FOR|WHILE)$/iu },
   { id: 'set_var', pattern: /^SET\s+(?:\{[A-Za-z_]\w*\}|[A-Za-z_]\w*)\s*=\s*.+$/iu },
   { id: 'debug_vars', pattern: /^DEBUG\s+VARS$/iu },
   { id: 'debug', pattern: /^(?:DEBUG|PAUSE)$/iu },
@@ -142,8 +149,8 @@ export function validateDocument(documentText: string): ValidationIssue[] {
       if (!line.raw.startsWith('    ')) {
         issues.push(createIssue(line.lineNumber, 1, line.raw.length + 1, 'Lines inside hook blocks must use a 4-space indent.', 'warning', 'indentation-hook-body'));
       }
-      if (!/^(PRINT\s+".*"|CALL\s+PYTHON\s+.+)$/u.test(line.trimmed)) {
-        issues.push(createIssue(line.lineNumber, 1, line.trimmed.length + 1, 'Only PRINT and CALL PYTHON are valid inside hook blocks.', 'error', 'invalid-hook-command'));
+      if (!/^(PRINT\s+".*"|CALL\s+(?:PYTHON|GO)\s+.+)$/u.test(line.trimmed)) {
+        issues.push(createIssue(line.lineNumber, 1, line.trimmed.length + 1, 'Only PRINT and CALL PYTHON / CALL GO are valid inside hook blocks.', 'error', 'invalid-hook-command'));
       }
       continue;
     }

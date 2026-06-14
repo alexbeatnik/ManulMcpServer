@@ -1,6 +1,30 @@
 export const DEFAULT_API_BASE_URL = 'http://127.0.0.1:8000';
 export const DEFAULT_TIMEOUT_MS = 60000;
 export const DEFAULT_PYTHON_PATH = 'python3';
+export const DEFAULT_RUNTIME = 'auto';
+
+export type ManulRuntimeSetting = 'auto' | 'python' | 'go';
+
+export function normalizeRuntime(rawValue: string | undefined): ManulRuntimeSetting {
+  switch ((rawValue ?? '').trim().toLowerCase()) {
+    case 'python':
+      return 'python';
+    case 'go':
+      return 'go';
+    case 'auto':
+      return 'auto';
+    default:
+      return DEFAULT_RUNTIME;
+  }
+}
+
+export function normalizePort(rawValue: number | string | undefined): number {
+  const parsed = Number(rawValue ?? 0);
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 65535) {
+    return 0;
+  }
+  return Math.trunc(parsed);
+}
 
 export function normalizeBaseUrl(rawValue: string): string {
   const trimmed = rawValue.trim();

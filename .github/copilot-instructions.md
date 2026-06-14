@@ -33,7 +33,16 @@ When using ManulMcpServer tools (`manul_run_step`, `manul_run_hunt_file`, etc.) 
 - `DONE.` must be flush-left
 - Action lines inside a STEP are indented with 4 spaces
 
-## DSL Command Reference (v0.0.9.29)
+## Runtimes (ManulEngine / ManulHeart)
+
+The same MCP tools and the same `.hunt` DSL run on either runtime, selected by `manul.runtime` (`auto` | `python` | `go`):
+
+- **ManulEngine** (Python/Playwright) — uses `CALL PYTHON`; blocks close by indentation (no END markers).
+- **ManulHeart** (Go/CDP, single `manul` binary) — uses `CALL GO`; adds `PRINT`, `SCREENSHOT`, `WAIT_FOR '<label>'`, `CALL <block>`, and explicit `END IF` / `END REPEAT` / `END FOR` / `END WHILE` terminators.
+
+`auto` picks Go when `manul.binaryPath` is set or the workspace has a `go.mod`, else Python. Treat a missing `manul` Go binary (when `manul.runtime` is `go`) or missing Chrome as a setup failure, not a DSL failure.
+
+## DSL Command Reference (v0.0.9.33)
 
 ### Navigation
 - `NAVIGATE to 'https://example.com'` — open URL, wait for DOM
@@ -81,10 +90,11 @@ When using ManulMcpServer tools (`manul_run_step`, `manul_run_hunt_file`, etc.) 
 ### Network
 - `MOCK GET "url_pattern" with 'mock_file'` — intercept network requests (GET/POST/PUT/PATCH/DELETE)
 
-### Python Integration
-- `CALL PYTHON module.function` — execute a synchronous Python function
+### Code Integration
+- `CALL PYTHON module.function` — (ManulEngine) execute a synchronous Python function
 - `CALL PYTHON module.function with args: "arg1" "arg2" into {result}` — with arguments and capture
-- `@script: {alias} = scripts.helpers` — declare Python helper alias
+- `CALL GO module.Function into {result}` — (ManulHeart) invoke a registered Go handler; optionally capture its return
+- `@script: {alias} = scripts.helpers` — declare a helper alias (Python path on ManulEngine, dotted Go path on ManulHeart)
 
 ### Utility
 - `SCAN PAGE` — scan current page for elements; `SCAN PAGE into {filename}` — write to file
@@ -106,6 +116,13 @@ When using ManulMcpServer tools (`manul_run_step`, `manul_run_hunt_file`, etc.) 
 - `FOR EACH {item} IN {items}:` — iterate over comma-separated values from a variable; `{i}` counter auto-set
 - `WHILE button 'Next' exists:` — repeat while condition is true; same conditions as IF; safety limit: 100 iterations
 
+### ManulHeart (Go) -only Commands
+- `PRINT "message"` — print a literal or `{variable}` (also valid in hook blocks; top-level PRINT works on both runtimes)
+- `SCREENSHOT` — capture a page screenshot at this point
+- `WAIT_FOR 'Element'` — wait until a quoted element is present (ManulEngine uses `Wait for 'Element' to be visible`)
+- `CALL BlockName` — invoke a reusable STEP block / blueprint inline (Go analogue of `USE`)
+- `END IF` / `END REPEAT` / `END FOR` / `END WHILE` — explicit block terminators (ManulEngine closes blocks by indentation)
+
 ### Contextual Qualifiers (disambiguation)
 - `Click the 'Edit' button NEAR 'John Doe'` — disambiguate repeated elements
 - `Click the 'Logo' link ON HEADER` — restrict to header/nav area
@@ -122,7 +139,7 @@ When using ManulMcpServer tools (`manul_run_step`, `manul_run_hunt_file`, etc.) 
 - `@export: Login, Logout` — declare importable blocks
 
 ### Hook Blocks
-- `[SETUP]` / `[END SETUP]` — runs before browser launch; CALL PYTHON and PRINT only
+- `[SETUP]` / `[END SETUP]` — runs before browser launch; PRINT and CALL PYTHON (or CALL GO on ManulHeart) only
 - `[TEARDOWN]` / `[END TEARDOWN]` — cleanup after mission; runs only if SETUP succeeded
 
 ## VERIFY After Every Action

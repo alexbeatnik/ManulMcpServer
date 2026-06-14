@@ -13,6 +13,15 @@ export type CommandCategory =
 
 export type InteractionModeId = 'drag' | 'select' | 'input' | 'clickable' | 'hover' | 'locate';
 
+/**
+ * Which runtime dialect supports a command:
+ *   'python' — ManulEngine only · 'go' — ManulHeart only · 'both' — shared.
+ * Absent is treated as 'both'. Purely advisory metadata for docs/filtering;
+ * the language providers (completion/hover) and validator surface all commands
+ * regardless of this tag.
+ */
+export type EngineDialect = 'python' | 'go' | 'both';
+
 export interface CommandDefinition {
   readonly id: string;
   readonly label: string;
@@ -22,6 +31,7 @@ export interface CommandDefinition {
   readonly description: string;
   readonly category: CommandCategory;
   readonly interactionMode?: InteractionModeId;
+  readonly engine?: EngineDialect;
 }
 
 export interface QualifierScoringRule {

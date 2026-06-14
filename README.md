@@ -128,16 +128,39 @@ After reload, `ManulMcpServer` appears in the MCP Servers panel and Copilot Chat
 
 ---
 
+## Engines
+
+ManulMcpServer drives the same `.hunt` DSL on either of two interchangeable runtimes:
+
+| Runtime | Language | How it runs | Best when |
+|---------|----------|-------------|-----------|
+| **ManulEngine** | Python (Playwright) | Bundled Python runner (MCP tools) + HTTP API (`manul serve`, editor Run) | You already use `manul-engine` / a Python `.venv` |
+| **ManulHeart** | Go (pure CDP) | Single static `manul` binary driving a managed Chrome over CDP | You want a no-Python, single-binary runtime |
+
+Selection is controlled by `manul.runtime` (default `auto`). In `auto` mode the
+extension uses **ManulHeart (Go)** when `manul.binaryPath` is set or the open
+workspace contains a `go.mod`, and **ManulEngine (Python)** otherwise. Set
+`manul.runtime` explicitly to `python` or `go` to override.
+
+> Both CLIs are named `manul`, so PATH alone cannot tell them apart — point
+> `manul.binaryPath` at the ManulHeart binary (`go build -o manul ./cmd/manul`)
+> when using the Go runtime. The Go runtime launches and owns a Chrome process
+> (resolved from `manul.executablePath` or a system Chrome/Chromium) and attaches
+> every `manul` call to it over the CDP debug port — no `manul serve` needed.
+
 ## Configuration
 
 Open Settings (`Ctrl+,`) and search for `manul`:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `manul.pythonPath` | `python3` | Python interpreter. Auto-discovers workspace `.venv` when left as default. |
-| `manul.executablePath` | `''` | Path to a custom browser or Electron app. Use with `OPEN APP` for desktop automation. |
+| `manul.runtime` | `auto` | Which runtime runs `.hunt` files: `auto`, `python` (ManulEngine), or `go` (ManulHeart). `auto` picks Go when `manul.binaryPath` is set or the workspace has a `go.mod`, else Python. |
+| `manul.binaryPath` | `''` | Path to the ManulHeart `manul` Go binary. Recommended for the Go runtime — ManulEngine's CLI is also named `manul`, so PATH alone can't disambiguate. |
+| `manul.cdpPort` | `0` | CDP port the Go runtime launches Chrome on. `0` auto-picks a free port. |
+| `manul.pythonPath` | `python3` | Python interpreter (ManulEngine runtime). Auto-discovers workspace `.venv` when left as default. |
+| `manul.executablePath` | `''` | Path to a custom browser or Electron app. Used as the Chrome binary for the Go runtime, and with `OPEN APP` for desktop automation. |
 | `manul.headless` | `false` | Run the browser without a visible window. |
-| `manul.apiBaseUrl` | `http://127.0.0.1:8000` | ManulEngine HTTP API URL for editor Run commands. |
+| `manul.apiBaseUrl` | `http://127.0.0.1:8000` | ManulEngine HTTP API URL for editor Run commands (Python runtime only). |
 | `manul.requestTimeoutMs` | `60000` | Timeout for engine calls (ms). |
 | `manul.logNormalizedDsl` | `true` | Log auto-corrected DSL in the output panel. |
 | `manul.mcpServerLabel` | `ManulMcpServer` | Label in the MCP Servers view. |
@@ -152,7 +175,7 @@ Example `settings.json`:
 }
 ```
 
-> **Two execution paths:** MCP tools (`manul_run_step`, `manul_run_goal`, etc.) use the **bundled Python runner** directly — no server needed. Editor title bar **Run** commands use the ManulEngine **HTTP API** at `manul.apiBaseUrl` (start it with `manul serve`).
+> **Execution paths:** On the **Python** runtime, MCP tools (`manul_run_step`, `manul_run_goal`, etc.) use the **bundled Python runner** directly — no server needed — while editor title bar **Run** commands use the ManulEngine **HTTP API** at `manul.apiBaseUrl` (start it with `manul serve`). On the **Go** runtime, both MCP tools and editor Run commands drive the ManulHeart `manul` binary against a managed Chrome — no server and no `apiBaseUrl` needed.
 
 ---
 
@@ -195,6 +218,7 @@ ManulMcpServer is one layer of the Manul automation stack:
 | Component | Role | Link |
 |-----------|------|------|
 | **ManulEngine** | Deterministic automation runtime (Python). Heuristic element resolver, `.hunt` DSL, CLI runner. | [PyPI](https://pypi.org/project/manul-engine/) · [GitHub](https://github.com/alexbeatnik/ManulEngine) |
+| **ManulHeart** | Deterministic automation runtime (Go). Same `.hunt` DSL via pure CDP — single static binary, no Python/Node, `CALL GO` extensions. | [GitHub](https://github.com/alexbeatnik/ManulHeart) |
 | **Manul Engine Extension** | VS Code extension for ManulEngine with debug panel, explain mode, and Test Explorer integration. | [Marketplace](https://marketplace.visualstudio.com/items?itemName=manul-engine.manul-engine) · [Open VSX](https://open-vsx.org/extension/manul-engine/manul-engine) · [GitHub](https://github.com/alexbeatnik/ManulEngineExtension) |
 | **ManulMcpServer** *(this)* | MCP bridge that gives Copilot Chat and other agents access to ManulEngine. | [Marketplace](https://marketplace.visualstudio.com/items?itemName=manul-engine.manul-mcp-server) · [Open VSX](https://open-vsx.org/extension/manul-engine/manul-mcp-server) · [GitHub](https://github.com/alexbeatnik/ManulMcpServer) |
 | **ManulAI Local Agent** | Autonomous AI agent for browser automation, powered by ManulEngine. | [Marketplace](https://marketplace.visualstudio.com/items?itemName=manul-engine.manulai-local-agent) · [Open VSX](https://open-vsx.org/extension/manul-engine/manulai-local-agent) · [GitHub](https://github.com/alexbeatnik/ManulAI-local-agent) |
@@ -213,6 +237,15 @@ Active when a `.hunt` file is focused in the editor.
 ---
 
 ## What's New
+
+### 0.0.9
+
+- **Dual runtime:** Added support for the **ManulHeart** Go runtime alongside ManulEngine (Python). New `manul.runtime` (`auto` | `python` | `go`), `manul.binaryPath`, and `manul.cdpPort` settings. `auto` selects Go when `manul.binaryPath` is set or the workspace has a `go.mod`, else Python.
+- **Go execution:** New session-managed `GoRunner` drives the ManulHeart `manul` binary (`run-step --compact`, stdin `manul -`, `map`, `read`) against a Chrome process it launches and owns over CDP — so MCP tools and editor Run work on the Go runtime with no `manul serve`.
+- **DSL authoring (both dialects):** Validation, completion, hover, snippets, and syntax highlighting now cover ManulHeart's `CALL GO`, top-level `PRINT`, `SCREENSHOT`, `WAIT_FOR '<label>'`, `CALL <block>`, and the explicit `END IF` / `END REPEAT` / `END FOR` / `END WHILE` block terminators.
+- **Compatibility:** Synced embedded DSL contract metadata to ManulEngine `0.0.9.33` and ManulHeart `v0.0.10`.
+- **Docs:** Updated `contracts/MANUL_MCP_AGENT_CONTRACT.md` and `.github/copilot-instructions.md` with the runtimes/dialect reference.
+- **Release:** Updated extension/package versioning to `0.0.9`.
 
 ### 0.0.8
 

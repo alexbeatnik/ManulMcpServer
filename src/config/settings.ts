@@ -1,6 +1,15 @@
 import { randomUUID } from 'node:crypto';
 import * as vscode from 'vscode';
-import { DEFAULT_API_BASE_URL, DEFAULT_TIMEOUT_MS, DEFAULT_PYTHON_PATH, normalizeBaseUrl, normalizeTimeout } from './defaults';
+import {
+  DEFAULT_API_BASE_URL,
+  DEFAULT_TIMEOUT_MS,
+  DEFAULT_PYTHON_PATH,
+  normalizeBaseUrl,
+  normalizeTimeout,
+  normalizeRuntime,
+  normalizePort,
+  type ManulRuntimeSetting,
+} from './defaults';
 
 const MANUL_CONFIGURATION_SECTION = 'manul';
 const SESSION_STATE_KEY = 'manul.sessionId';
@@ -15,6 +24,9 @@ export interface ManulExtensionSettings {
   readonly headless: boolean;
   readonly workspacePath: string;
   readonly extensionPath: string;
+  readonly runtime: ManulRuntimeSetting;
+  readonly binaryPath: string;
+  readonly cdpPort: number;
 }
 
 export async function getExtensionSettings(
@@ -35,6 +47,9 @@ export async function getExtensionSettings(
     headless: configuration.get<boolean>('headless', false),
     workspacePath: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '',
     extensionPath: context.extensionPath,
+    runtime: normalizeRuntime(configuration.get<string>('runtime', 'auto')),
+    binaryPath: configuration.get<string>('binaryPath', '').trim(),
+    cdpPort: normalizePort(configuration.get<number>('cdpPort', 0)),
   };
 }
 

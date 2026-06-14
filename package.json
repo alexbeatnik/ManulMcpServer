@@ -1,8 +1,8 @@
 {
   "name": "manul-mcp-server",
   "displayName": "ManulMcpServer",
-  "description": "VS Code extension that publishes ManulEngine as an MCP server and supports .hunt authoring.",
-  "version": "0.0.8",
+  "description": "VS Code extension that publishes ManulEngine (Python) and ManulHeart (Go) as an MCP server and supports .hunt authoring.",
+  "version": "0.0.9",
   "publisher": "manul-engine",
   "license": "Apache-2.0",
   "engines": {
@@ -20,6 +20,8 @@
     "mcp",
     "automation",
     "manulengine",
+    "manulheart",
+    "go",
     "developer-tools"
   ],
   "repository": {
@@ -120,6 +122,33 @@
     "configuration": {
       "title": "ManulMcpServer",
       "properties": {
+        "manul.runtime": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "python",
+            "go"
+          ],
+          "enumDescriptions": [
+            "Auto-detect: use ManulHeart (Go) when manul.binaryPath is set or the workspace contains a go.mod, otherwise ManulEngine (Python).",
+            "Always use the ManulEngine Python runtime.",
+            "Always use the ManulHeart Go runtime (manul.binaryPath)."
+          ],
+          "default": "auto",
+          "description": "Which Manul runtime executes .hunt files: ManulEngine (Python) or ManulHeart (Go)."
+        },
+        "manul.binaryPath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the ManulHeart `manul` Go binary. Recommended for the Go runtime because ManulEngine's CLI is also named `manul`, so PATH alone cannot disambiguate them."
+        },
+        "manul.cdpPort": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 65535,
+          "description": "Chrome DevTools Protocol port the Go runtime launches Chrome on. 0 auto-picks a free port."
+        },
         "manul.apiBaseUrl": {
           "type": "string",
           "default": "http://127.0.0.1:8000",

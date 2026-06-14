@@ -69,3 +69,18 @@ export interface IManulBackend {
   runSteps(steps: readonly string[], dsl?: string): Promise<ApiResult>;
   getState(): Promise<ApiResult<ManulEngineState>>;
 }
+
+/**
+ * The full runner surface the MCP stdio bridge drives directly (beyond the
+ * shared IManulBackend). Implemented by both PythonRunner (ManulEngine) and
+ * GoRunner (ManulHeart) so the bridge can pick a runtime without branching in
+ * every tool handler.
+ */
+export interface IManulRunner extends IManulBackend {
+  proposeHunt(context?: string, title?: string): Promise<ApiResult>;
+  saveHunt(path: string, content: string): Promise<ApiResult>;
+  scanPage(): Promise<ApiResult>;
+  readPageText(): Promise<ApiResult>;
+  reset(context?: string, title?: string): Promise<ApiResult>;
+  shutdown(): Promise<void>;
+}

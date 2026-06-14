@@ -139,5 +139,50 @@
       "        ${2:action}"
     ],
     "description": "Repeat while condition is true (safety limit: 100 iterations)"
+  },
+  "Manul Call Go": {
+    "prefix": "callgo",
+    "body": "CALL GO ${1:module}.${2:Function}${3: into {${4:variable}}}",
+    "description": "ManulHeart (Go runtime): invoke a registered Go handler inline"
+  },
+  "Manul Print": {
+    "prefix": "print",
+    "body": "PRINT \"${1:message}\"",
+    "description": "Print a message or {variable} to the console/report"
+  },
+  "Manul Screenshot": {
+    "prefix": "screenshot",
+    "body": "SCREENSHOT",
+    "description": "ManulHeart (Go runtime): capture a page screenshot"
+  },
+  "Manul Wait For Element": {
+    "prefix": "waitforel",
+    "body": "WAIT_FOR '${1:target}'",
+    "description": "ManulHeart (Go runtime): wait until an element is present"
+  },
+  "Manul Call Block": {
+    "prefix": "call",
+    "body": "CALL ${1:BlockName}",
+    "description": "ManulHeart (Go runtime): invoke a reusable STEP block / blueprint"
+  },
+  "Manul End If": {
+    "prefix": "endif",
+    "body": "END IF",
+    "description": "ManulHeart (Go runtime): explicit IF block terminator"
+  },
+  "Manul End Repeat": {
+    "prefix": "endrepeat",
+    "body": "END REPEAT",
+    "description": "ManulHeart (Go runtime): explicit REPEAT loop terminator"
+  },
+  "Manul End For": {
+    "prefix": "endfor",
+    "body": "END FOR",
+    "description": "ManulHeart (Go runtime): explicit FOR EACH loop terminator"
+  },
+  "Manul End While": {
+    "prefix": "endwhile",
+    "body": "END WHILE",
+    "description": "ManulHeart (Go runtime): explicit WHILE loop terminator"
   }
 }

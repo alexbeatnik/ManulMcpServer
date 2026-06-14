@@ -8,17 +8,34 @@
 
 ```json
 {
-  "version": "0.0.9.29",
-  "serverVersion": "0.0.8",
+  "version": "0.0.9.33",
+  "serverVersion": "0.0.9",
   "serverName": "manul-mcp-server",
   "protocol": "Model Context Protocol (MCP) over stdio",
   "generatedFrom": "src/mcp/stdioServer.ts, src/mcp/server.ts, src/config/contract.ts",
 
   "overview": {
-    "description": "ManulEngine is a deterministic, DSL-first Web & Desktop Automation Runtime backed by Playwright. This MCP server exposes ManulEngine capabilities as tools that AI agents can call to automate browsers, run E2E tests, execute RPA workflows, and build .hunt automation scripts. The browser session is persistent — it opens on first use and stays alive across tool calls until shutdown.",
-    "sessionModel": "Persistent. The Python runner manages a single browser session. First call to any execution tool (manul_run_step, manul_run_goal, manul_run_hunt, manul_run_hunt_file) launches the browser. Subsequent calls reuse the same session. The session keeps the browser alive even on step failure for inspect/retry.",
-    "engineArchitecture": "Hunt DSL → Parser → Execution Engine → DOMScorer heuristics → Playwright actions. Element resolution is deterministic (TreeWalker + 0.0–1.0 float scoring). Optional LLM fallback only when explicitly enabled.",
+    "description": "The Manul MCP server exposes a deterministic, DSL-first Web & Desktop Automation Runtime as tools that AI agents can call to automate browsers, run E2E tests, execute RPA workflows, and build .hunt automation scripts. The same tools and the same .hunt DSL run on either of two interchangeable runtimes — ManulEngine (Python/Playwright) or ManulHeart (Go/CDP). The browser session is persistent — it opens on first use and stays alive across tool calls until shutdown.",
+    "sessionModel": "Persistent. A single browser session is reused across calls. First call to any execution tool (manul_run_step, manul_run_goal, manul_run_hunt, manul_run_hunt_file) launches the browser. The session keeps the browser alive even on step failure for inspect/retry.",
+    "engineArchitecture": "Hunt DSL → Parser → Execution Engine → deterministic heuristic element scorer (0.0–1.0) → browser actions. ManulEngine drives Playwright; ManulHeart drives Chrome directly over CDP. Element resolution is deterministic; optional LLM fallback only when explicitly enabled (ManulEngine).",
     "taskSupportPolicy": "forbidden — all tools are synchronous request/response. Task mode is not supported."
+  },
+
+  "runtimes": {
+    "selection": "Controlled by the manul.runtime setting (auto | python | go), default auto. In auto mode the Go runtime is selected when manul.binaryPath is set OR the workspace contains a go.mod; otherwise the Python runtime is used. Both CLIs are named `manul`, so PATH cannot disambiguate them — set manul.binaryPath to the ManulHeart Go binary when using the Go runtime.",
+    "python": {
+      "name": "ManulEngine",
+      "language": "Python (Playwright)",
+      "execution": "MCP tools use the bundled python/manul_runner.py subprocess; editor Run commands use the HTTP API (manul serve) at manul.apiBaseUrl.",
+      "callExtension": "CALL PYTHON module.function ... into {var}"
+    },
+    "go": {
+      "name": "ManulHeart",
+      "language": "Go (pure CDP, single static binary)",
+      "execution": "The GoRunner launches and owns a Chrome process with the CDP debug port open and drives the `manul` binary against it: run-step --compact, stdin `manul -` --json, map, read.",
+      "callExtension": "CALL GO module.Function ... into {var}",
+      "dialectDeltas": "ManulHeart adds top-level PRINT, SCREENSHOT, WAIT_FOR '<label>', CALL <block>, and explicit block terminators END IF / END REPEAT / END FOR / END WHILE (ManulEngine closes blocks by indentation and has no END markers). @script: aliases a dotted Go handler path for CALL GO."
+    }
   },
 
   "tools": [
@@ -264,8 +281,8 @@
   ],
 
   "dslCommandReference": {
-    "version": "0.0.9.29",
-    "description": "DSL command set recognized by the ManulEngine parser. Use these commands as input to manul_run_step, manul_run_hunt, and in .hunt file content.",
+    "version": "0.0.9.33",
+    "description": "DSL command set recognized by the parser. Use these commands as input to manul_run_step, manul_run_hunt, and in .hunt file content. Commands without an engine note work on both runtimes; see manulHeartDialect for ManulHeart (Go) -only commands.",
 
     "navigation": [
       { "command": "NAVIGATE to 'https://example.com'", "description": "Open URL, wait for DOM settlement." },
@@ -328,9 +345,10 @@
       { "command": "MOCK GET \"url_pattern\" with 'mock_file'", "description": "Intercept network requests (GET/POST/PUT/PATCH/DELETE)." }
     ],
 
-    "pythonIntegration": [
-      { "command": "CALL PYTHON module.function", "description": "Execute a synchronous Python function." },
-      { "command": "CALL PYTHON module.function with args: \"arg1\" into {result}", "description": "Call with arguments and capture return value." }
+    "codeIntegration": [
+      { "command": "CALL PYTHON module.function", "description": "ManulEngine (Python) only. Execute a synchronous Python function." },
+      { "command": "CALL PYTHON module.function with args: \"arg1\" into {result}", "description": "ManulEngine (Python) only. Call with arguments and capture return value." },
+      { "command": "CALL GO module.Function into {result}", "description": "ManulHeart (Go) only. Invoke a registered Go handler and optionally capture its return value." }
     ],
 
     "utility": [
@@ -357,6 +375,14 @@
       { "command": "WHILE button 'Next' exists:", "description": "Repeat while condition is true. Same conditions as IF blocks. Safety limit: 100 iterations. {i} counter auto-set. Nesting supported." }
     ],
 
+    "manulHeartDialect": [
+      { "command": "PRINT \"message\"", "description": "Print a literal string or {variable} to the console/report. Valid as a top-level action (both runtimes) and inside hook blocks." },
+      { "command": "SCREENSHOT", "description": "ManulHeart (Go) only. Capture a screenshot at this point in the mission." },
+      { "command": "WAIT_FOR 'Element'", "description": "ManulHeart (Go) only. Wait until a quoted element is present. ManulEngine spells this as \"Wait for 'Element' to be visible\"." },
+      { "command": "CALL BlockName", "description": "ManulHeart (Go) only. Invoke a reusable STEP block / blueprint inline (Go analogue of USE)." },
+      { "command": "END IF / END REPEAT / END FOR / END WHILE", "description": "ManulHeart (Go) only. Explicit block terminators. ManulEngine closes IF/loop blocks by indentation and does not use END markers." }
+    ],
+
     "contextualQualifiers": [
       { "command": "NEAR 'Anchor Text'", "description": "Bias by Euclidean distance to anchor element. Append to any action." },
       { "command": "ON HEADER", "description": "Restrict to header/nav area or top 15% viewport. Append to any action." },
@@ -377,7 +403,7 @@
     ],
 
     "hookBlocks": [
-      { "block": "[SETUP] ... [END SETUP]", "description": "Runs before browser launch. CALL PYTHON and PRINT only. Failure marks mission as broken." },
+      { "block": "[SETUP] ... [END SETUP]", "description": "Runs before browser launch. PRINT and CALL PYTHON (or CALL GO on ManulHeart) only. Failure marks mission as broken." },
       { "block": "[TEARDOWN] ... [END TEARDOWN]", "description": "Cleanup after mission. Runs only if SETUP succeeded." },
       { "command": "PRINT \"message with {vars}\"", "description": "Variable-interpolated console output. Valid only inside [SETUP]/[TEARDOWN] blocks." }
     ],
